@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C# Express 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infinity_TD", "Infinity_TD\Infinity_TD\Infinity_TD.csproj", "{65DEA2E4-669F-49B0-8693-B3602B345F02}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infinity_TDContent", "Infinity_TD\Infinity_TDContent\Infinity_TDContent.contentproj", "{6442193C-43F9-4F7A-A8B6-87810F502CBC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infinity_TD_Library", "Infinity_TD_Library\Infinity_TD_Library.csproj", "{12ED7A0D-97A0-4C72-B2C0-5FB12D3CE1EB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{65DEA2E4-669F-49B0-8693-B3602B345F02}.Debug|x86.ActiveCfg = Debug|x86
+		{65DEA2E4-669F-49B0-8693-B3602B345F02}.Debug|x86.Build.0 = Debug|x86
+		{65DEA2E4-669F-49B0-8693-B3602B345F02}.Release|x86.ActiveCfg = Release|x86
+		{65DEA2E4-669F-49B0-8693-B3602B345F02}.Release|x86.Build.0 = Release|x86
+		{6442193C-43F9-4F7A-A8B6-87810F502CBC}.Debug|x86.ActiveCfg = Debug|x86
+		{6442193C-43F9-4F7A-A8B6-87810F502CBC}.Release|x86.ActiveCfg = Release|x86
+		{12ED7A0D-97A0-4C72-B2C0-5FB12D3CE1EB}.Debug|x86.ActiveCfg = Debug|x86
+		{12ED7A0D-97A0-4C72-B2C0-5FB12D3CE1EB}.Debug|x86.Build.0 = Debug|x86
+		{12ED7A0D-97A0-4C72-B2C0-5FB12D3CE1EB}.Release|x86.ActiveCfg = Release|x86
+		{12ED7A0D-97A0-4C72-B2C0-5FB12D3CE1EB}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SensorsAndSuch", "SensorsAndSuch\SensorsAndSuch\SensorsAndSuch.csproj", "{F24F5236-AEE9-48BF-9244-23DEFADE3DD4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SensorsAndSuchContent", "SensorsAndSuch\SensorsAndSuchContent\SensorsAndSuchContent.contentproj", "{691F832B-08FF-4F45-92F3-9E6E60D75480}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farseer Physics XNA", "..\..\Farseer Physics Engine 3.3.1 Samples XNA(2)\Farseer Physics Engine 3.3.1 Samples XNA\Farseer Physics Engine 3.3 XNA\Farseer Physics XNA.csproj", "{0A850700-1ABB-4288-A391-6726B90EBEB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples XNA", "..\..\Farseer Physics Engine 3.3.1 Samples XNA(2)\Farseer Physics Engine 3.3.1 Samples XNA\Samples XNA\Samples XNA\Samples XNA.csproj", "{1681ADA2-B2F3-4157-A603-82C742379856}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F24F5236-AEE9-48BF-9244-23DEFADE3DD4}.Debug|x86.ActiveCfg = Release|x86
+		{F24F5236-AEE9-48BF-9244-23DEFADE3DD4}.Debug|x86.Build.0 = Release|x86
+		{F24F5236-AEE9-48BF-9244-23DEFADE3DD4}.Release|x86.ActiveCfg = Release|x86
+		{F24F5236-AEE9-48BF-9244-23DEFADE3DD4}.Release|x86.Build.0 = Release|x86
+		{691F832B-08FF-4F45-92F3-9E6E60D75480}.Debug|x86.ActiveCfg = Debug|x86
+		{691F832B-08FF-4F45-92F3-9E6E60D75480}.Release|x86.ActiveCfg = Release|x86
+		{0A850700-1ABB-4288-A391-6726B90EBEB9}.Debug|x86.ActiveCfg = Debug|x86
+		{0A850700-1ABB-4288-A391-6726B90EBEB9}.Debug|x86.Build.0 = Debug|x86
+		{0A850700-1ABB-4288-A391-6726B90EBEB9}.Release|x86.ActiveCfg = Release|x86
+		{0A850700-1ABB-4288-A391-6726B90EBEB9}.Release|x86.Build.0 = Release|x86
+		{1681ADA2-B2F3-4157-A603-82C742379856}.Debug|x86.ActiveCfg = Debug|x86
+		{1681ADA2-B2F3-4157-A603-82C742379856}.Debug|x86.Build.0 = Debug|x86
+		{1681ADA2-B2F3-4157-A603-82C742379856}.Release|x86.ActiveCfg = Release|x86
+		{1681ADA2-B2F3-4157-A603-82C742379856}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

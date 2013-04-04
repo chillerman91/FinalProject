@@ -1,0 +1,41 @@
+RPG Game Board Game
+----------
+Ouroboros
+
+Story Idea
+----------
+   You were on your way to heaven when you died, but the 
+resurrection deities condemed you to hell to stop you from
+becoming a god, now you must fight your way to find the Amulet
+of Ouroborus, the resurrection amulet, in order to get out of
+hell.
+
+Bosses Seven Princes of Hell
+~Each Prince holds a peice of the amulet
+
+Belphegor - Vanity and Sloth
+Lucifer - Pride
+Mammon - Greed
+Asmodeus - Lust
+Baal - Gluttony
+Leviathan - Envy
+Satan - Wrath
+
+once all 7 peices are collected your character is then
+resurected and sent to heaven for his triumphs there you
+then become a god
+
+
+Classes:
+Paladin - Swords
+Caster - Magic
+Rogue - Speed
+
+Beggining of the Game:
+1 - Choose Gender
+2 - Choose Class
+3 - Type Name
+4 - Choose Map
+5 - Complete Map 
+6 - Beat Boss - Get Piece
+Repeat 4-6

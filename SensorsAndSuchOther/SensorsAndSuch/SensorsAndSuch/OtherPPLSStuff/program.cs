@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using SharpNeat.Core;
 using SharpNeat.Phenomes;
-
+/*
 class Program
 {
     static NeatEvolutionAlgorithm<NeatGenome> _ea;
@@ -47,3 +47,5 @@ class Program
         doc.Save(CHAMPION_FILE);
     }
 }
+
+*/

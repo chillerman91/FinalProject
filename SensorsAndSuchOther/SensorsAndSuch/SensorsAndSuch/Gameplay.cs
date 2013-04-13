@@ -10,6 +10,13 @@ using SensorsAndSuch.Mobs;
 using FarseerPhysics.SamplesFramework;
 using SensorsAndSuch.FrameWork;
 using System.Collections.Generic;
+using SharpNeat.EvolutionAlgorithms;
+using SharpNeat.Genomes.Neat;
+using SensorsAndSuch;
+//TODO: Right CLicking does something 
+//TODO: consolidate config setting to one loaction
+//TODO: USE Viewport and not Draw funciton
+//TODO: Only Dras things on screen
 
 namespace SensorsAndSuch.Screens
 {
@@ -17,6 +24,7 @@ namespace SensorsAndSuch.Screens
     {
         HUDPlayerInfo HUDPlayerInfo;
         Player player;
+
         private enum ScreenState
         {
             CreatingMap,
@@ -25,7 +33,8 @@ namespace SensorsAndSuch.Screens
             Paused,
             Map
         }
-        int popAmount = 50;
+
+        int popAmount = 20;
         private ScreenState currentState = ScreenState.CreatingMap;
         int tick = 0;
         GraphicsDevice Device;
@@ -33,11 +42,13 @@ namespace SensorsAndSuch.Screens
 
         int timesTurnedOver = 0;
         string outFile = "";
+        NeatEvolutionAlgorithm<NeatGenome> EvolutionAlgorithm;
+        int GenNumb = 1;
 
         public Gameplay(Game game, SpriteBatch batch, ChangeScreen changeScreen, GraphicsDeviceManager graphics, GraphicsDevice Device)
             : base(game, batch, changeScreen, graphics)
         {
-            RandomMap.TicksInCreate = 700;
+            RandomMap.TicksInCreate = 350;
             this.Device = Device;
         }
 
@@ -49,7 +60,7 @@ namespace SensorsAndSuch.Screens
             Globals.AssetCreatorr.LoadContent(content);
             Globals.SetLevelSpecific(new MobManager(), new RandomMap());
         }
-        int GenNumb = 1;
+
         protected void StartGame()
         {
             tick = 0;
@@ -58,9 +69,13 @@ namespace SensorsAndSuch.Screens
             Globals.player = player;
             GameStart = true;
             HUDPlayerInfo = new HUDPlayerInfo(content, player);
-            for (int i = 0; i < popAmount; i++)
+
+            //Creating Starting population
+            EvolutionAlgorithm = Globals.NeatExp.CreateEvolutionAlgorithm(popAmount);
+            List<NeatGenome> StartingBrains = EvolutionAlgorithm.GetUpdatedGeneration();
+            for (int i = 0; i < StartingBrains.Count; i++)
             {
-                Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, gridPos: Globals.map.GetRandomFreePos(), age: Globals.rand.Next(50));
+                Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, gridPos: Globals.map.GetRandomFreePos(), genome: StartingBrains[i]);
                 Globals.Mobs.GetMobAt(i).SetPathway(i % MobManager.pathways);
             }
             Globals.GamesStart = true;
@@ -100,47 +115,7 @@ namespace SensorsAndSuch.Screens
                     return;
                 }
             }
-            else if (currentState == ScreenState.SettingPoints) 
-            {
-                Globals.map.ToLocation = Globals.map.ToLocation * .95f + new Vector2(0, 0) * (Globals.map.PosMod) * .05f;
-                Globals.map.globalScale = Globals.map.globalScale * .99f + .25f * .01f;
-                if (!input.PreviousKeyboardState.IsKeyDown(Keys.M) && input.CurrentKeyboardState.IsKeyDown(Keys.M) && Globals.Mobs.pathwayPts.Count == MobManager.pathways *2)
-                {
-                    StartGame();
-                    currentState = ScreenState.Playing;
-                }
-                if (input.CurrentMouseState.LeftButton == ButtonState.Pressed && input.PreviousMouseState.LeftButton == ButtonState.Released && Globals.Mobs.pathwayPts.Count < MobManager.pathways * 2)
-                {
-                    Vector2 GridPos = Globals.map.GridFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y);
-                    if (Globals.map.isInBounds(GridPos) && Globals.Mobs.AddPathPt(GridPos))
-                    {
-                        List<BaseTile> column = Globals.map.GetTileColumn(GridPos);
-                        if (Globals.map.GetTileColumn(GridPos).Count == 2)
-                        {
-                            Globals.map.CreateBlockFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y);
-                        }
-                        if (Globals.Mobs.pathwayPts.Count % 2 == 1)
-                        {
-                            column[column.Count - 1].color = Color.Gold;
-                        }
-                        else
-                        {
-                            column[column.Count - 1].color = Color.OrangeRed;
-                        }
-                    }
-                } 
-                else if (input.CurrentMouseState.LeftButton == ButtonState.Pressed && input.PreviousMouseState.LeftButton == ButtonState.Released)
-                {
-                    Globals.map.CreateBlockFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y);
-                }
-                if (input.CurrentMouseState.RightButton == ButtonState.Pressed)
-                {
-                    Vector2 pos = Globals.map.GridFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y);
-                    pos = new Vector2((int)pos.X, (int)pos.Y);
-                    if (Globals.map.isFree(pos))
-                        Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, pos);
-                }
-            }
+
             else if (currentState == ScreenState.Map)
             {
                 Globals.map.ToLocation = Globals.map.ToLocation * .95f + new Vector2(0, 0) * (Globals.map.PosMod) * .05f;
@@ -157,8 +132,8 @@ namespace SensorsAndSuch.Screens
                 {
                     Vector2 pos = Globals.map.GridFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y);
                     pos = new Vector2((int)pos.X, (int)pos.Y);
-                    if(Globals.map.isFree(pos))
-                        Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, pos);
+                    if (Globals.map.isFree(pos)) { }
+                        //Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, pos);
                 }
                 UpdateAll();
             }
@@ -217,62 +192,18 @@ namespace SensorsAndSuch.Screens
             //MobManager.mobGroups = 25;
             Globals.Mobs.UpdateMobs(tick % maxTickLoop);
             //Globals.map.Update();
-            if (tick % 1500 == Math.Min(100 * GenNumb + 100, 300 - 1))
+            if (tick % 1500 == 1499)
             {
-                //return;
-                if (timesTurnedOver == MobManager.pathways)
-                {
-                    GenNumb++;
-                    outFile += "\n\nGneration  " + GenNumb + "\n";
-                    BaseMonster[] mon = Globals.Mobs.Monsters;
-                    List<BaseMonster> SortedMob = new List<BaseMonster>();
-                    for (int i = 0; i < Globals.Mobs.GetMobAmount(); i++)
-                    {
-                        mon[i].SetScore();
-                        SortedMob.Add(mon[i]);
-                    }
-                    SortedMob.Sort();
-
-                    int numbAdded = 0;
-                    for (int i = 0; i < SortedMob.Count; i++)
-                    {
-                        if (numbAdded < popAmount)
-                        {
-                            int chilAmount = Math.Max((int)((50 - i*i) / 5), 1);
-                            if (numbAdded + chilAmount <= popAmount)
-                                SortedMob[i].MakeChildren(chilAmount);
-                            else
-                                SortedMob[i].MakeChildren(popAmount - numbAdded);
-                            numbAdded += chilAmount;
-                        }
-                        outFile += "Agent " + i + "'s Fitness: " + SortedMob[i].Score + "\n";
-                    }
-                    if (SortedMob[0].Score > 50)
-                    {
-                        //System.IO.File.WriteAllText("HW2.out", outFile);
-                        //return;
-                    }
-                    HUDPlayerInfo.GenInfo = "" + GenNumb + " " + SortedMob[0].Score + " " + SortedMob[1].Score + " " + SortedMob[popAmount - 1].Score;
-                    for (int i = 0; i < popAmount; i++)
-                    {
-                        Globals.Mobs.KillMonster(0);
-                    }
-
-                    for (int i = 0; i < popAmount; i++)
-                    {
-                        Globals.Mobs.GetMobAt(i).SetPathway(i % MobManager.pathways);
-                    }
-
-                    timesTurnedOver = 0;
+                BaseMonster[] mon = Globals.Mobs.Monsters;
+                int i = 0;
+                while (mon[i] != null) {
+                    mon[i].SetScore();
                 }
-                else
+                EvolutionAlgorithm.EvaluateGeneration();
+                List<NeatGenome> StartingBrains = EvolutionAlgorithm.GetUpdatedGeneration();
+                for (i = 0; i < StartingBrains.Count; i++)
                 {
-                    int mobAmount = Globals.Mobs.GetMobAmount();
-                    for (int i = 0; i < mobAmount; i++)
-                    {
-                        Globals.Mobs.GetMobAt(i).ChangePathway();
-                    }
-                    timesTurnedOver++;
+                    mon[i].ResetGenome(StartingBrains[i]);
                 }
                 tick = 0;
             }

@@ -50,7 +50,6 @@ namespace SensorsAndSuch.Mobs
         public float Update()
         {
             distance = 1;
-
             Globals.World.RayCast((fixture, point, normal, fraction) =>
             {
                 if (fixture != null && fixture.CollisionCategories != Category.Cat2 && fixture.IsSensor == false && distance > fraction)
@@ -60,9 +59,8 @@ namespace SensorsAndSuch.Mobs
                 return 1;
             }
             , attatchedTo.Position, attatchedTo.Position + (attatchedTo.Rotation + OffSet).GetVecFromAng() * WiskerR * .16f);
-            System.Diagnostics.Debug.WriteLine(distance);
             int r = (int)(240 * (distance - .3) / .7f) + 10;
-            color = new Color(255-r, r, 0);
+            //color = new Color(255-r, r, 0);
             return distance;
         }
 

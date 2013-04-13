@@ -67,8 +67,6 @@ namespace SensorsAndSuch.NEAT
         public abstract bool EvaluateParents { get; }
         #endregion
 
-        
-
         #region INeatExperiment Members
         public string Description
         {
@@ -125,16 +123,16 @@ namespace SensorsAndSuch.NEAT
             _eaParams.SpecieCount = _specieCount;
             _neatGenomeParams = new NeatGenomeParameters();
         }
-
+        
         /// <summary>
         /// Load a population of genomes from an XmlReader and returns the genomes in a new list.
         /// The genome2 factory for the genomes can be obtained from any one of the genomes.
         /// </summary>
         public List<NeatGenome> LoadPopulation(XmlReader xr)
         {
-            return NeatGenomeUtils.LoadPopulation(xr, false, this.InputCount, this.OutputCount);
+            return new List<NeatGenome>();// NeatGenomeUtils.LoadPopulation(xr, false, this.InputCount, this.OutputCount);
         }
-
+        
         /// <summary>
         /// Save a population of genomes to an XmlWriter.
         /// </summary>

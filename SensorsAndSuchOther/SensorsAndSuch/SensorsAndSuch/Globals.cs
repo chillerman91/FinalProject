@@ -7,6 +7,8 @@ using Microsoft.Xna.Framework.Content;
 using SensorsAndSuch.Sprites;
 using FarseerPhysics.Dynamics;
 using FarseerPhysics.SamplesFramework;
+using SensorsAndSuch.NEAT;
+using System.Xml;
 
 namespace SensorsAndSuch
 {
@@ -21,6 +23,7 @@ namespace SensorsAndSuch
         public static World World;
         public static bool GamesStart = false;
         public static AssetCreator AssetCreatorr { get; set; }
+        public static NeatExp NeatExp { get; set; }
         public static ScreenManager ScreenManager { get; set; }
         public static void SetGeneral(ContentManager content, GraphicsDevice device, World World)
         {
@@ -28,6 +31,10 @@ namespace SensorsAndSuch
             Globals.Device = device;
             AssetCreatorr = new AssetCreator(device);
             Globals.World = World;
+            Globals.NeatExp = new NeatExp();
+            XmlDocument xmlConfig = new XmlDocument();
+            xmlConfig.Load("tictactoe.config.xml");
+            Globals.NeatExp.Initialize("TicTacToe", xmlConfig.DocumentElement);
         }
 
         public static void SetLevelSpecific(MobManager mobs, RandomMap map)

@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Content;
 using SensorsAndSuch.Maps;
 using SensorsAndSuch.Texts;
 using FarseerPhysics.Dynamics;
+using SharpNeat.Genomes.Neat;
 
 namespace SensorsAndSuch.Mobs
 {
@@ -26,33 +27,18 @@ namespace SensorsAndSuch.Mobs
         /*Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
                      outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);*/
         public int Count = 0;
-        public MobManager() 
-        {
-            Monsters = new BaseMonster[MaxMonsters];
-        }
-        #region HW2
-        public virtual bool ChangePathway()
-        {
-            return false;
-        }
-        #endregion
+
 
         public float totalRank = .2f;
         public float totalDist = .2f;
         public int distancesUsed = 0;
         public int counter = 0;
 
-        public bool AddPathPt(Vector2 vec)
+        public MobManager() 
         {
-            if (!pathwayPts.Contains(vec))
-            {
-                pathwayPts.Add(vec);
-                return true;
-
-            }
-            return false;
+            Monsters = new BaseMonster[MaxMonsters];
         }
-
+        /*
         public int Compare(Vector2 pos, float avgLength, int turns)
         {
             counter++;
@@ -79,56 +65,70 @@ namespace SensorsAndSuch.Mobs
             //    return 0 ;
             if (rank > 1.3 && i < 120) rank *= 3;
             if (rank > 1.5 && i < 120) rank *= 3;
+            if (i > 50) return 0;
             if (i < 20) 
                 AddMonster(SensorsAndSuch.Mobs.BaseMonster.MonTypes.Normal, Globals.map.GetRandomFreePos());
-            return Math.Min((int)rank, 10);
+            return Math.Min((int)rank, 3);
         }
+        */
+        #region Adding things to the map
 
         public bool AddPlayer(Player player)
         {
-            int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
-            {
-                i++;
-            }
+            int i = GetMobAmount();
             Monsters[i] = player;
             return true;
         }
 
-        public bool AddMonster(BaseMonster.MonTypes monType, Vector2 gridPos, int age = 0)
+        public bool AddMonster(BaseMonster.MonTypes monType, Vector2 gridPos, NeatGenome genome)
+        {
+            int i = GetMobAmount();
+            if (i >= MaxMonsters) return false;
+            if (monType == BaseMonster.MonTypes.Normal)
+                Monsters[i] = new BadGuy(gridPos, i, genome);
+            return true;
+        }
+
+        internal bool AddMonster(BaseMonster.MonTypes monTypes, BaseMonster badGuy, Vector2 vector2)
+        {
+            int i = GetMobAmount();
+            if (i >= MaxMonsters)
+                return false;
+            Monsters[i] = new BadGuy(vector2, badGuy, i);
+            return true;
+        }
+
+        
+        public bool AddMonster()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void AddMonster(BaseMonster mon1, BaseMonster mon2)
+        {
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Getters and Setters
+
+        public BaseMonster GetMobAt(int id)
+        {
+            return Monsters[id];
+        }
+
+        internal int GetMobAmount()
         {
             int i = 0;
             while (i < MaxMonsters && Monsters[i] != null)
             {
                 i++;
             }
-            if (i >= MaxMonsters) return false;
-            if (monType == BaseMonster.MonTypes.Normal)
-                Monsters[i] = new BadGuy(gridPos, i, age: age);
-            else if (monType == BaseMonster.MonTypes.Static)
-                Monsters[i] = new BadGuy(gridPos, i, age: age);
-            return true;
+            return i;
         }
 
-        public bool AddMonster()
-        {
-            int i = 0;
-            while (i < MaxMonsters &&  Monsters[i] != null)
-            {
-                i++;
-            }
-            if (i >= MaxMonsters) return false;
-            Monsters[i] = new BadGuy(Globals.map.GetRandomFreePos(), i);
-            return true;
-        }
-
-  
-        #region Getters and Setters
-        
-        public BaseMonster GetMobAt(int id)
-        {
-            return Monsters[id];
-        }
         #endregion
 
         public bool KillMonster(int i)
@@ -169,12 +169,6 @@ namespace SensorsAndSuch.Mobs
             }
         }
 
-        internal void AddMonster(BaseMonster mon1, BaseMonster mon2)
-        {
-            Vector2? newPos = Globals.map.FindAtHeightFree((int)mon1.GridPos.X, (int)mon1.GridPos.Y, 1, 4);
-            if (newPos == null) return;
-            AddMonster(mon1.type, (Vector2)newPos);
-        }
 
         internal void Update(Inputs.GameInput input)
         {
@@ -191,29 +185,6 @@ namespace SensorsAndSuch.Mobs
                 i++;
             }
             //info.ChangeText("");
-        }
-
-        internal int GetMobAmount()
-        {
-            int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
-            {
-                i++;
-            }
-            return i;
-        }
-
-        internal bool AddMonster(BaseMonster.MonTypes monTypes, BaseMonster badGuy, Vector2 vector2)
-        {
-            int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
-            {
-                i++;
-            }
-            if (i >= MaxMonsters) 
-                return false;
-            Monsters[i] = new BadGuy(vector2, badGuy, i);
-            return true;
         }
 
         internal void RunBackProp(float[] inputs, float[] output)

@@ -29,6 +29,11 @@ namespace SensorsAndSuch.Items
         int timesUsed = 0;
         int timesSinceLast = 0;
 
+
+        //Stats
+        int hitCounter = 0;
+        int killCounter = 0;
+
         public Sword(BaseMonster holder, Materials material)
             :base(GetName(), holder)
         {
@@ -45,8 +50,7 @@ namespace SensorsAndSuch.Items
             shape.FixtureList[0].OnSeparation += SeperationHandler;
 
         }
-        int hitCounter = 0;
-        int killCounter = 0;
+
         #region Handlers
 
         public bool CollisionHandler(Fixture fixtureA, Fixture fixtureB, Contact contact)
@@ -59,7 +63,7 @@ namespace SensorsAndSuch.Items
                 mon.DoDamage(damage * 2);
                 if (mon.health <= 0)
                 {
-                    mon.MakeChildren(1);
+                    //mon.MakeChildren(1);
                     killCounter++;
                 }
             }
@@ -91,7 +95,7 @@ namespace SensorsAndSuch.Items
 
         private static string GetName()
         {
-            return "The Wood Chopper";
+            return "The Skull Chopper";
         }
 
         #endregion

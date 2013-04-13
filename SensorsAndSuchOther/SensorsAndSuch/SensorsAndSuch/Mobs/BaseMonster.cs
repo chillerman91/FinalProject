@@ -9,6 +9,8 @@ using System;
 using SensorsAndSuch.Extensions;
 using SensorsAndSuch.Mobs.AI;
 using FarseerPhysics.Dynamics;
+using SharpNeat.Genomes.Neat;
+using SharpNeat.Phenomes;
 
 
 namespace SensorsAndSuch.Mobs
@@ -19,7 +21,6 @@ namespace SensorsAndSuch.Mobs
         {
             Normal, Static, Player
         }
-
 
         public abstract void Kill();
         public abstract void TakeTurn();
@@ -82,23 +83,26 @@ namespace SensorsAndSuch.Mobs
         #endregion
 
         public int MaxHealth = 20;
-        //public int NutVal = 10;
         protected float speed = 1.2f;
         protected Vector2 Dir;
         protected Vector2 CurrentGridPos;
-        internal Brain Brain;
+        internal IBlackBox Brain;
+        internal NeatGenome Genome;
 
-        public BaseMonster(string tex, Vector2 GridPos, string Name, Vector2 moveDir, int NutVal, int Age, int id)
+        public BaseMonster(string tex, Vector2 GridPos, string Name, Vector2 moveDir, int NutVal, int Age, int id, NeatGenome Genome)
             :base (tex, GridPos)
         {
             this.Name = Name;
             this.Dir = moveDir;
             this.Age = Age;
             this.id = id;
+            ResetGenome(Genome);
         }
 
         public virtual void MakeChildren(int numb)
         {
+            if (Genome == null)
+                return;
             for (int i = 0; i < numb; i++)
                 Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, this, Globals.map.GetRandomFreePos());
         }
@@ -111,7 +115,7 @@ namespace SensorsAndSuch.Mobs
         public int GetLevel(){return Level;}
 
         public virtual void BackProp(float[] inputs, float[] output)
-        {
+        {/*
             Brain.Flush();
             float[] ret1 = Brain.Calculate(inputs);
             float[] outers = Brain.BackProp(inputs, output);
@@ -124,7 +128,7 @@ namespace SensorsAndSuch.Mobs
                     return;
                     throw new Exception("BackProp Gave bad change.");
                 }
-            }
+            }*/
         }
 
         #region Static Methods/Properties
@@ -149,6 +153,13 @@ namespace SensorsAndSuch.Mobs
         internal void DoDamage(int p)
         {
             health -= p;
+        }
+
+        internal void ResetGenome(NeatGenome neatGenome)
+        {
+            this.Genome = neatGenome;
+
+            this.Brain = Globals.NeatExp.GetBlackBoxFromGenome(this.Genome);
         }
     }
 }

@@ -26,7 +26,7 @@ namespace SensorsAndSuch.Sprites
         HUDPlayerInfo HUD;
 
         public Player(ContentManager content, Vector2 GridPos)
-            : base(GridPos, Color.Purple, 0, 0, FarseerPhysics.Dynamics.BodyType.Dynamic, .15f, parent: null)
+            : base(GridPos, Color.Purple, 0, 0, FarseerPhysics.Dynamics.BodyType.Dynamic, .15f, parent: null, Genome: null)
         {
             //PieSliceSensor = new PieSlice(circle, new Color(10, 10, 10, 90), 2f);
             speed = .5f;

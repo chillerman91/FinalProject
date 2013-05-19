@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using SensorsAndSuch.Extensions;
 using System;
 using SensorsAndSuch.Items;
+using FarseerPhysics.Dynamics;
 
 namespace SensorsAndSuch.Sprites
 {
@@ -24,13 +25,30 @@ namespace SensorsAndSuch.Sprites
         }
 
         HUDPlayerInfo HUD;
-
+        MoveOpt previousOpt;
+        Vector2 oldPos;
+        public int kills;
+        public int lives = 3;
+        public bool dead = false;
+        public double timeAtDeath;
+        protected int timeSpanDead = 10;
+        public bool CanUseMap = Globals.Debugging;
+        public int range { 
+            get { return Globals.Debugging ? 100 : (dead ? 2: seeingRange); } 
+            set{ seeingRange = value;}
+        }
+        protected int seeingRange = 2;
+        public String BonusText = "Get 2 kills for a larger vision!!";
         public Player(ContentManager content, Vector2 GridPos)
-            : base(GridPos, Color.Purple, 0, 0, FarseerPhysics.Dynamics.BodyType.Dynamic, .15f, parent: null, Genome: null)
+            : base(GridPos, Color.Gold, 0, 0, .15f, parent: null, Genome: null)
         {
+            this.color = Color.Gold;
             //PieSliceSensor = new PieSlice(circle, new Color(10, 10, 10, 90), 2f);
             speed = .5f;
+
             weapon = new Sword(this, Item.Materials.Iron);
+            weapon.StartUse();
+            Dir = new Vector2(0, 0);
         }
 
         internal void SetThisHUD(HUDPlayerInfo HUD)
@@ -38,51 +56,69 @@ namespace SensorsAndSuch.Sprites
             this.HUD = HUD;
         }
 
-        MoveOpt previousOpt;
-
         public void TakeTurn(MoveOpt Opt)
         {
-            float[] ret = new float[2];
-            float[] output = new float[2];
-            health = 1000;
-            ret[0] = Wiskers[0].Update();
-            //ret[1] = Wiskers[1].Update();
-            //ret[2] = Wiskers[2].Update();
-            //ret[3] = Wiskers[3].Update();
-            ret[1] = (shape.Rotation % (2f * (float)Math.PI)) / (2f * (float)Math.PI);
-            //List<Vector2> circleContent = CircleSensor.Update(this.Dir);
-            //int[] pieSliceContent = PieSliceSensor.Update(this.Dir);
-            if (ret[1] > 1 || ret[0] < 0)
-                return;
-            output[0] = 0.5f;// 0.5f;
-            output[1] = 0.5f;
-            //output[2] = 1;
+            if (health <= 0)
+            {
+                health = MaxHealth;
+                lives--;
+                if (Globals.Debugging && Globals.GamplayScreen.currentState == Gameplay.ScreenState.MapEditing)
+                    SetRandPosSafe(Globals.tick);
+                else
+                {
+                    //color = Color.Black;
+                    color.A = 10;
+                    weapon.EndUse();
+                    dead = true;
+                    shape.LinearDamping = 1f;
+                    shape.CollisionCategories = Category.Cat3;
+                    shape.CollidesWith = Category.Cat3;
+                    timeAtDeath = Globals.GameTime.TotalGameTime.TotalSeconds;
+                    Globals.GamplayScreen.SetDied();
+                }
+            }
+
+            if (dead)
+            {
+                if (timeAtDeath + timeSpanDead < Globals.GameTime.TotalGameTime.TotalSeconds)
+                {
+                    if(Globals.map.isFree(Globals.map.GridFromPhysics(shape.Position)))
+                    {
+                        color = Color.Gold;
+                        color.A = 255;
+                        weapon.StartUse();
+                        dead = false;
+                        shape.LinearDamping = 3f;
+                        shape.CollidesWith = Category.Cat1;
+                        shape.CollisionCategories = Category.Cat1;
+                        Globals.GamplayScreen.SetLiving();
+                    }
+
+                }
+            }
+
             switch (Opt)
             {
                 case MoveOpt.LEFT:
                     {
-                        output[0] = 1;
                         shape.ApplyForce(new Vector2(1, 0) * speed, shape.Position);
                         shape.Rotation = 0;//MathHelper.Pi;
                         break;
                     }
                 case MoveOpt.RIGHT:
                     {
-                        output[0] = 0;
                         shape.ApplyForce(new Vector2(-1, 0) * speed, shape.Position);
                         shape.Rotation = MathHelper.Pi;
                         break;
                     }
                 case MoveOpt.UP:
                     {
-                        output[1] = 0;
                         shape.ApplyForce(new Vector2(0, -1) * speed, shape.Position);
                         shape.Rotation = MathHelper.Pi * 3f / 2f;
                         break;
                     }
                 case MoveOpt.DOWN:
                     {
-                        output[1] = 1;
                         shape.ApplyForce(new Vector2(0, 1) * speed, shape.Position);
                         shape.Rotation = MathHelper.Pi / 2f;
                         break;
@@ -92,164 +128,45 @@ namespace SensorsAndSuch.Sprites
                         break;
                     }
             }
-            weapon.StartUse();
-            //output[0] = -1f;
-            //output[1] = -1f; 
-            if (MoveOpt.NONE != Opt && previousOpt != Opt)
-            {/*
-                Brain.Flush();
-                float[] ret1 = Brain.Calculate(ret);
-                Globals.Mobs.RunBackProp(inputs: ret, output: output);
-                float[] outers = Brain.BackProp(ret, output);
-                Brain.Flush();
-                float[] ret2 = Brain.Calculate(ret);
-                if (Math.Abs(ret1[0] - output[0]) < Math.Abs(ret2[0] - output[0]))
-                {
-                    return;
-                }
-                if (Math.Abs(ret1[1] - output[1]) < Math.Abs(ret2[1] - output[1]))
-                {
-                    return;
-                }
-                previousOpt = Opt;
-                HUD.UpdateWhiskers(string.Format("{0:F2}", 1f), string.Format("{0:F2}", ret[0]), string.Format("{0:F2}", ret[1]));
-            }
-            else
-            {
-                ret[0] = .6f;
-                ret[1] = .8f;
-                Brain.Flush();
-                output = Brain.Calculate(ret);
-                output[0] = 3f;*/
-            }
-            // Update player position and heading.
-            this.Dir = shape.Rotation.GetVecFromAng();
-            this.CurrentGridPos = shape.Position;
-
-            // Update HUD for position/heading and each sensor type.
-            // Update player info.
-            HUD.UpdatePlayer(string.Format("Player Position: X={0:F2} Y={1:F2}; Heading: X={2:F2} Y={3:F2}", this.CurrentGridPos.X, this.CurrentGridPos.Y, this.Dir.X, this.Dir.Y));
-
-            // Update whisker info.
-
-            // Update circleSensor info.
-            string adjacentInfo = "Agents: ";
-            int i = 0;
-            /*
-            foreach(Vector2 otherAgent in circleContent)
-            {
-                i++;
-                adjacentInfo += string.Format("{0}) dist: {1:F1}, angle: {2:F0}, ", i, otherAgent.X, otherAgent.Y);
-            }
-            HUD.UpdateAdjacents(adjacentInfo);
-            */
-            // Update pieslice info.
-            string pieSliceInfo = "PieSlices: ";
-            //pieSliceInfo += string.Format("Front: {0}, Left: {1}, Back: {2}, Right: {3}",
-            //    pieSliceContent[0], pieSliceContent[1], pieSliceContent[2], pieSliceContent[3]);
-            HUD.UpdatePieSlices(pieSliceInfo);
-        }
-
-        float turnMom = 0;
-
-        public void TakeTurnPackPRop(MoveOpt Opt)
-        {
-            float[] ret = new float[Wiskers.Length];
-            float[] output = new float[1];
-
-            for (int i = 0; i < Wiskers.Length; i++)
-                ret[i] = (Wiskers[i].Update());
-            //ret[1] = Wiskers[1].Update();
-            //ret[2] = Wiskers[2].Update();
-            //ret[3] = Wiskers[3].Update();
-            //ret[1] = (circle.Rotation %( 2f * (float)Math.PI)) / (2f * (float)Math.PI);
-            //List<Vector2> circleContent = CircleSensor.Update(this.Dir);
-            //int[] pieSliceContent = PieSliceSensor.Update(this.Dir);
-            if (ret[1] > 1 || ret[0] < 0)
-                return;
-            //output[0] = 0.5f;// 0.5f;
-            //output[1] = 0.5f;
-            //output[2] = 1;
-            //circle.Rotation = circle.Rotation * .7f + newRot * .3f;
-            float startRot = shape.Rotation; //.GetVecFromAng();
-            //circle.ApplyForce(dir * speed, circle.Position);
-            switch (Opt)
-            {
-                case MoveOpt.LEFT:
-                    {
-                        turnMom += .01f;
-                        break;
-                    }
-                case MoveOpt.RIGHT:
-                    {
-
-                        turnMom -= .01f;
-                        break;
-                    }
-            }
-            if (turnMom != 0)
-                turnMom += -turnMom * .25f;
-            shape.Rotation += turnMom;
-
-            output[0] = (shape.Rotation - startRot)/10f;
-            output[0] = Math.Max(-1, Math.Min(output[0], 1));
-            output[0] = output[0] / 2 + .5f;
-            output[0] = .5f;                
-            if (MoveOpt.NONE != Opt)
-            {            
-                Vector2 dir = shape.Rotation.GetVecFromAng();
-                shape.ApplyForce(dir * speed, shape.Position);
-                //Globals.Mobs.RunBackProp(inputs: ret, output: output);
-                //BackProp(ret, output);
-
-                previousOpt = Opt;
-                HUD.UpdateWhiskers(string.Format("{0:F2}", 1f), string.Format("{0:F2}", ret[0]), string.Format("{0:F2}", ret[1]));
-            }
-            else {
-                //ret[0] = .6f;&& previousOpt != Opt
-                //ret[1] = .8f;
-                //Brain.Flush();
-                //output = Brain.Calculate(ret);
-                //output[0] = 3f;
-            }
-            // Update player position and heading.
-                this.Dir = shape.Rotation.GetVecFromAng();
-                this.CurrentGridPos = shape.Position;
+            int newKills = weapon.Use();
             
+            kills += newKills;
+            if (newKills != 0)
+            {
+                ApplyBonuses(kills);
+            }
+            // Update player position and heading.
+            if (!(shape.Position - oldPos).HasNan())
+            {
+                this.Dir = (shape.Position - oldPos);
+                this.Dir.Normalize();
+
+            }
+
+            if (this.Dir.HasNan())
+            {
+                this.Dir = new Vector2(0, 0);
+            }
+            GridPos = Globals.map.GridFromPhysics(shape.Position);
+            this.CurrentGridPos = shape.Position;
             // Update HUD for position/heading and each sensor type.
             // Update player info.
-            HUD.UpdatePlayer(string.Format("Player Position: X={0:F2} Y={1:F2}; Heading: X={2:F2} Y={3:F2}", this.CurrentGridPos.X, this.CurrentGridPos.Y, this.Dir.X, this.Dir.Y));
+            //HUD.UpdatePlayer(string.Format("Player Position: X={0:F2} Y={1:F2}; Heading: X={2:F2} Y={3:F2}", this.CurrentGridPos.X, this.CurrentGridPos.Y, this.Dir.X, this.Dir.Y));
 
-            // Update whisker info.
-
-            // Update circleSensor info.
-            string adjacentInfo = "Agents: ";
-            //int i = 0;
-            /*
-            foreach(Vector2 otherAgent in circleContent)
-            {
-                i++;
-                adjacentInfo += string.Format("{0}) dist: {1:F1}, angle: {2:F0}, ", i, otherAgent.X, otherAgent.Y);
-            }
-            HUD.UpdateAdjacents(adjacentInfo);
-            */
-            // Update pieslice info.
-            string pieSliceInfo = "PieSlices: ";
-            //pieSliceInfo += string.Format("Front: {0}, Left: {1}, Back: {2}, Right: {3}",
-            //    pieSliceContent[0], pieSliceContent[1], pieSliceContent[2], pieSliceContent[3]);
-            HUD.UpdatePieSlices(pieSliceInfo);
+            //HUD.UpdatePieSlices(pieSliceInfo);
+            oldPos = shape.Position;
         }
 
         public override void Draw(SpriteBatch batch)
         {
-            SetHUDData(batch);
             weapon.Draw(batch);
-            Wiskers[0].Draw(batch);
-            base.Draw(batch);
-        }
-
-        public void SetHUDData(SpriteBatch batch)
-        {
+            //AdjDataGetter.Draw(batch);
+            if (weapon != null) weapon.Draw(batch);
+            batch.Draw(Sprite.Texture,
+                               Globals.map.ScreenFromPhysics(shape.Position), null,
+                               adjColor == null ? color : (Color)adjColor, shape.Rotation, Sprite.Origin, Globals.map.globalScale * .75f,
+                               SpriteEffects.None, 0f);
+            adjColor = null;
         }
 
         public void CreatePlayer(int clas, string name)
@@ -257,17 +174,95 @@ namespace SensorsAndSuch.Sprites
             Name = name;
         }
 
-        internal void Warp()
+        public string ApplyBonuses(int kills)
         {
-            Vector2 pos = Globals.map.GetRandomFreePos();
-            shape.Position = new Vector2 (pos.X * TileWidth, pos.Y * TileHeight);
-            //CircleSensor.ClearCollisions();
-            //PieSliceSensor.ClearCollisions();
+            string ret = "";
+            switch (kills)
+            {
+                case (2):
+                {
+                    range++;
+                    BonusText = String.Format("Get 4 kills for a larger vision!!");
+                    break;
+                }
+                case (4):
+                {
+                    range++;
+                    BonusText = String.Format("Get 6 kills for a larger vision!!");
+                    break;
+                }
+                case (6):
+                {
+                    range++;
+                    BonusText = String.Format("Get 8 kills for a larger vision!!");
+                    break;
+                }
+                case (8):
+                {
+                    range++;
+                    BonusText = String.Format("Get 10 kills for an extra life!!");
+                    break;
+                }
+                case (10):
+                {
+                    lives++;
+                    BonusText = String.Format("Get 15 kills for a larger vision!!");
+                    break;
+                }
+                case (15):
+                {
+                    range++;
+                    BonusText = String.Format("Get 20 kills for a larger vision!!");
+                    break;
+                }
+                case (20):
+                {
+                    range++;
+                    BonusText = String.Format("Get 25 more kills for a larger vision!!");
+                    break;
+                }
+                case (25):
+                {
+                    range++;
+                    range++;
+                    BonusText = String.Format("Get 35 more kills for a larger vision!!");
+                    break;
+                }
+                case (35):
+                {
+                    range +=4;
+                    BonusText = String.Format("Get 50 more kills for Full vision!!");
+                    break;
+                } 
+                                
+                case (50):
+                {
+                    range = 100;
+                    CanUseMap = true;
+                    BonusText = String.Format("Get sdfg more kills for a larger vision!!");
+                    break;
+                }
+                speed += .1f;
+            }
+
+            if(kills < 81)
+            {
+                if (kills % 10 == 0)
+                    lives++;
+                return ret;
+            }
+            return null;
+        }
+
+        internal void Suicide()
+        {
+            health = 0;
         }
 
         internal void Rest()
         {
             health += 1;
         }
+
     }
 }

@@ -21,6 +21,7 @@ namespace SensorsAndSuch.FrameWork
         private GraphicsDevice _device;
         private Texture2D _materials;
         private BasicEffect _effect;
+        protected bool paused = false;
 
         public SensorScreen(Game game, SpriteBatch batch, ChangeScreen changeScreen, GraphicsDeviceManager graphics)
             : base(game, batch, changeScreen, graphics)
@@ -43,10 +44,9 @@ namespace SensorsAndSuch.FrameWork
             }
         }
 
-        protected bool paused = false;
         public void Update(GameTime gameTime, bool otherScreenHasFocus = false, bool coveredByOtherScreen = false)
         {
-            //if (paused) return;
+            if (paused) return;
             if (!coveredByOtherScreen && !otherScreenHasFocus)
             {
                 // variable time step but never less then 30 Hz

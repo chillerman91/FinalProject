@@ -13,11 +13,11 @@ using SensorsAndSuch.Extensions;
 
 namespace SensorsAndSuch.Maps
 {
-    public class SecondaryCrawler: BaseCrawler
+    public class SecondaryElemental: BaseElemental
     {
         //private Color BaseColor = Color.ForestGreen;
-        BaseCrawler attatched;
-        public SecondaryCrawler(int X, int Y, Color col, BaseCrawler attatched)
+        BaseElemental attatched;
+        public SecondaryElemental(int X, int Y, Color col, BaseElemental attatched)
             : base(X: X, Y: Y, col: col)
         {
             //radialreset = 0;
@@ -25,7 +25,7 @@ namespace SensorsAndSuch.Maps
             this.attatched = attatched;
         }
 
-        public override void TakeTurn(List<BaseTile>[,] Grid, bool canModWalls = true)
+        public override void takeTurn(List<BaseTile>[,] Grid, bool canModWalls = true)
         {
             CentralX = attatched.X;
             CentralY = attatched.Y;
@@ -39,7 +39,7 @@ namespace SensorsAndSuch.Maps
                 X += (int)dir.X;
                 Y += (int)dir.Y;
             }
-            base.TakeTurn(Grid);
+            base.takeTurn(Grid);
         }
 
     }

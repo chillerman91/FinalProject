@@ -20,14 +20,13 @@ namespace SensorsAndSuch.Mobs
         public static int pathways = 5;
 
         public List<Vector2> pathwayPts = new List<Vector2>();
-        
-        public static int MaxMonsters = 200;
+        Reaper Reaper;
+        public static int MaxMonsters = 151;
 
         public static int mobGroups;
-        /*Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
-                     outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);*/
+        Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
+                     outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);
         public int Count = 0;
-
 
         public float totalRank = .2f;
         public float totalDist = .2f;
@@ -36,41 +35,10 @@ namespace SensorsAndSuch.Mobs
 
         public MobManager() 
         {
+            Reaper = new Reaper(new Vector2(0, 0), 0);
             Monsters = new BaseMonster[MaxMonsters];
         }
-        /*
-        public int Compare(Vector2 pos, float avgLength, int turns)
-        {
-            counter++;
-            if (counter > 100) 
-            {
-                totalRank = 0;
-                totalDist = 0;
-                distancesUsed = 0;
-                counter = 0;
-            }
-            float dist = pos.Length();
-            totalDist += dist;
-            distancesUsed++;
-            float ret = dist / (totalDist / distancesUsed);
-            int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
-            {
-                i++;
-            }
-            float rank = ret + avgLength*5;
-            totalRank += rank;
-            rank = rank / (totalRank / distancesUsed);
-            //if (turns >= 0)
-            //    return 0 ;
-            if (rank > 1.3 && i < 120) rank *= 3;
-            if (rank > 1.5 && i < 120) rank *= 3;
-            if (i > 50) return 0;
-            if (i < 20) 
-                AddMonster(SensorsAndSuch.Mobs.BaseMonster.MonTypes.Normal, Globals.map.GetRandomFreePos());
-            return Math.Min((int)rank, 3);
-        }
-        */
+
         #region Adding things to the map
 
         public bool AddPlayer(Player player)
@@ -129,6 +97,42 @@ namespace SensorsAndSuch.Mobs
             return i;
         }
 
+        internal void SetMobsDebugging(bool setValue)
+        {
+            int i = 0;
+            while (i < MaxMonsters && Monsters[i] != null)
+            {
+                Monsters[i].viewDebuging = setValue;
+                i++;
+            }
+        }
+
+        internal void ToggleMobsDebugging(List<BaseMonster> mon)
+        {
+            for (int i = 0; i < mon.Count; i++)
+            {
+                mon[i].viewDebuging = !mon[i].viewDebuging;
+            }
+        }
+
+        //returns a list of Monsters in the set box
+        //ScreenPos: the top left of the box in physics coordinates
+        internal List<BaseMonster> GetMobsInBox(Vector2 topLeft, float width, float height)
+        {
+            int i = 0;
+            List<BaseMonster> ret = new List<BaseMonster>();
+            while (i < MaxMonsters && Monsters[i] != null)
+            {
+                Vector2 pos = Monsters[i].GetPosition() - topLeft;
+                if (pos.X >= 0 && pos.Y >= 0 && pos.X < width && pos.Y < height)
+                {
+                    ret.Add(Monsters[i]);
+                }
+                i++;
+            }
+            return ret;
+        }
+
         #endregion
 
         public bool KillMonster(int i)
@@ -153,48 +157,89 @@ namespace SensorsAndSuch.Mobs
             int i = 0;
             while (i < MaxMonsters && Monsters[i] != null)
             {
-                Monsters[i].Draw(batch);
+                if ((Globals.player.GetPosition() - Monsters[i].GetPosition()).LengthSquared() < (Globals.player.range - .3) * (Globals.player.range - .3))
+                    Monsters[i].Draw(batch);
                 i++;
             }
-            //info.Draw(batch);
+
+            if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+            {
+                Reaper.Draw(batch);
+            }
+
+            info.Draw(batch);
             Count = i - 1;
         }
+
+        //All mobs take a turn
         public void UpdateMobs(int t = 0)
         {
             int i = mobGroups * t; 
-            while (i < MaxMonsters && i < mobGroups*(t+1) && Monsters[i] != null)
+            while (Globals.GamplayScreen.currentState != Screens.Gameplay.ScreenState.Ghost &&i < MaxMonsters && i < mobGroups*(t+1) && Monsters[i] != null)
             {
                 Monsters[i].TakeTurn();
                 i++;
             }
+            if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+            {
+                Reaper.Active = true;
+                Reaper.TakeTurn();
+            }
         }
 
-
-        internal void Update(Inputs.GameInput input)
+        internal void UpdateAnalyzeCreatures(Inputs.GameInput input)
         {
             int i = 0;
+            List<BaseMonster> monEffected = new List<BaseMonster>();
+
+            //Get List of creatures to effect
             while (i < MaxMonsters && Monsters[i] != null)
             {
-                Vector2 tran = Globals.map.ScreenFromPhysics(Monsters[i].GridPos);
-                //if (input.CheckMouseOver(tran, BaseTile.TileWidth, BaseTile.TileHeight))
-                //{
-                    //info.ChangeText(Monsters[i].GetInfo());
-                    //info.Position = new Vector2(tran.X + BaseTile.TileWidth,tran.Y + BaseTile.TileHeight);
-                   // return;
-               // }
+                Vector2 monPos = Monsters[i].GetPosition();
+                if ((monPos - Globals.map.PhysicsFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y)).Length() < .2)
+                {
+                    Monsters[i].adjColor = Color.Black;
+                    monEffected.Add(Monsters[i]);
+                }
                 i++;
             }
-            //info.ChangeText("");
+
+            //On Left Click Toggle their debuggin status
+            if (input.CurrentMouseState.LeftButton == ButtonState.Pressed && input.PreviousMouseState.LeftButton == ButtonState.Released)
+            {
+                //reset monster on tile that is right clicked
+                Globals.Mobs.ToggleMobsDebugging(monEffected);
+            }
+
+            //On Right button down, warp them(Will effect score)
+            if (input.CurrentMouseState.RightButton == ButtonState.Pressed)
+            {
+                for (i = 0; i < monEffected.Count; i++)
+                {
+                    monEffected[i].SetRandPos();
+                }
+            }
         }
 
-        internal void RunBackProp(float[] inputs, float[] output)
+        //Safely Warp all creatures
+        internal void WarpCreatures(int tick)
         {
             int i = 0;
+
             while (i < MaxMonsters && Monsters[i] != null)
             {
-                Monsters[i].BackProp(inputs, output);
+                Monsters[i].SetRandPosSafe(tick);
                 i++;
             }
+        }
+
+        internal void setReaperStart()
+        {
+            Reaper.SetPosition(Globals.player.GetPosition(-2, true));
+            Reaper._speed = .01f;
+            Reaper.SetVelZero();
+            if (Globals.player.range >= 100)
+                Reaper.Afraid = true;
         }
     }
 }

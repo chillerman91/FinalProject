@@ -7,11 +7,16 @@ using SharpNeat.Phenomes;
 using SharpNeat.Genomes.Neat;
 using SharpNeat.Decoders.Neat;
 using SharpNeat.EvolutionAlgorithms;
+using SharpNeat.SpeciationStrategies;
+using SharpNeat.DistanceMetrics;
+using SharpNeat.EvolutionAlgorithms.ComplexityRegulation;
+using SharpNeat.Domains;
+using SensorsAndSuch.Mobs;
 
 namespace SensorsAndSuch.NEAT
 {
     internal class NeatExp : SimpleNeatExperiment
-    {        
+    {
         /// <summary>
         /// Gets the evaluator that scores individuals.
         /// </summary>
@@ -27,7 +32,7 @@ namespace SensorsAndSuch.NEAT
         /// </summary>
         public override int InputCount
         {
-            get { return 6; }
+            get { return BadGuy.BrainInputs; }
         }
 
         /// <summary>
@@ -37,7 +42,7 @@ namespace SensorsAndSuch.NEAT
         /// </summary>
         public override int OutputCount
         {
-            get { return 1; }
+            get { return 3; }
         }
 
         /// <summary>
@@ -51,69 +56,80 @@ namespace SensorsAndSuch.NEAT
         {
             get { return true; }
         }
-        public void StartExp()
+
+        /// <summary>
+        /// Create and return a NeatEvolutionAlgorithm object ready for running the NEAT algorithm/search. Various sub-parts
+        /// of the algorithm are also constructed and connected up.
+        /// This overload requires no parameters and uses the default population size.
+        /// </summary>
+        public BadGuyEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm()
         {
-            NeatEvolutionAlgorithm<NeatGenome> EA = CreateEvolutionAlgorithm();
-
-
+            return CreateEvolutionAlgorithm(DefaultPopulationSize);
         }
 
-        public void GetGenomeList()
-        { 
-            
+        /// <summary>
+        /// Create and return a NeatEvolutionAlgorithm object ready for running the NEAT algorithm/search. Various sub-parts
+        /// of the algorithm are also constructed and connected up.
+        /// This overload accepts a population size parameter that specifies how many genomes to create in an initial randomly
+        /// generated population.
+        /// </summary>
+        public BadGuyEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(int populationSize)
+        {
+            // Create a genome2 factory with our neat genome2 parameters object and the appropriate number of input and output neuron genes.
+            IGenomeFactory<NeatGenome> genomeFactory = CreateGenomeFactory();
+
+            // Create an initial population of randomly generated genomes.
+            List<NeatGenome> genomeList = genomeFactory.CreateGenomeList(populationSize, 0);
+
+            // Create evolution algorithm.
+            return CreateEvolutionAlgorithm(genomeFactory, genomeList);
         }
 
-        public void CreateNewGenomes()
+        /// <summary>
+        /// Create and return a NeatEvolutionAlgorithm object ready for running the NEAT algorithm/search. Various sub-parts
+        /// of the algorithm are also constructed and connected up.
+        /// This overload accepts a pre-built genome2 population and their associated/parent genome2 factory.
+        /// </summary>
+        public BadGuyEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(IGenomeFactory<NeatGenome> genomeFactory, List<NeatGenome> genomeList)
         {
+            // Create distance metric. Mismatched genes have a fixed distance of 10; for matched genes the distance is their weigth difference.
+            IDistanceMetric distanceMetric = new ManhattanDistanceMetric(1.0, 0.0, 5.0);
+            ISpeciationStrategy<NeatGenome> speciationStrategy = new ParallelKMeansClusteringStrategy<NeatGenome>(distanceMetric, _parallelOptions);
 
+            // Create complexity regulation strategy.
+            IComplexityRegulationStrategy complexityRegulationStrategy = ExperimentUtils.CreateComplexityRegulationStrategy(_complexityRegulationStr, _complexityThreshold);
+
+            // Create the evolution algorithm.
+            BadGuyEvolutionAlgorithm<NeatGenome> ea = new BadGuyEvolutionAlgorithm<NeatGenome>(_eaParams, speciationStrategy, complexityRegulationStrategy);
+
+            // Create genome2 decoder.
+            //IGenomeDecoder<NeatGenome, IBlackBox> 
+            genomeDecoder = new NeatGenomeDecoder(_activationScheme);
+
+            // Create a genome2 list evaluator. This packages up the genome2 decoder with the genome2 evaluator.
+            //IGenomeListEvaluator<NeatGenome> genomeListEvaluator = new ParallelGenomeListEvaluator<NeatGenome, IBlackBox>(genomeDecoder, PhenomeEvaluator, _parallelOptions);
+
+            // Wrap the list evaluator in a 'selective' evaulator that will only evaluate new genomes. That is, we skip re-evaluating any genomes
+            // that were in the population in previous generations (elite genomes). This is determiend by examining each genome2's evaluation info object.
+            /*if (!EvaluateParents)
+                genomeListEvaluator = new SelectiveGenomeListEvaluator<NeatGenome>(genomeListEvaluator,
+                                         SelectiveGenomeListEvaluator<NeatGenome>.CreatePredicate_OnceOnly());
+            */
+            // Initialize the evolution algorithm.
+            ea.Initialize(genomeFactory, genomeList);
+
+            // Finished. Return the evolution algorithm
+            return ea;
         }
         
-        internal NeatGenome GetStartingGenome()
-        {                    
-            // Create a genome2 factory with our neat genome2 parameters object and the appropriate number of input and output neuron genes.
-            IGenomeFactory<NeatGenome> genomeFactory = CreateGenomeFactory();
-            NeatGenome ret = null;
-            while (ret == null)
-            {
-                ret = genomeFactory.CreateGenomeList(1, 0)[0];
-            }
-            // Create an initial population of randomly generated genomes.
-            return ret; 
-        }
 
-        public List<NeatGenome> GetStartingGenomes(int populationSize)
-        {
-            // Create a genome2 factory with our neat genome2 parameters object and the appropriate number of input and output neuron genes.
-            IGenomeFactory<NeatGenome> genomeFactory = CreateGenomeFactory();
-
-            // Create an initial population of randomly generated genomes.
-            return genomeFactory.CreateGenomeList(populationSize, 0);
-        }
-
-        public IBlackBox GetStartingBlackBox(int populationSize)
-        {
-            IBlackBox ret = null;
-            IGenomeDecoder<NeatGenome, IBlackBox> decoder = CreateGenomeDecoder();
-            while (ret == null)
-            {
-                // Create a genome2 factory with our neat genome2 parameters object and the appropriate number of input and output neuron genes.
-                IGenomeFactory<NeatGenome> genomeFactory = CreateGenomeFactory();
-
-                // Create an initial population of randomly generated genomes.
-
-                ret = decoder.Decode(genomeFactory.CreateGenomeList(populationSize, 0)[0]); ;
-            }
-            return ret;
-        }
-
-        public IBlackBox GetBlackBoxFromGenome(NeatGenome genome)
+        internal IBlackBox GetBlackBoxFromGenome(NeatGenome genome)
         {
             IBlackBox ret = null;
             if (genome == null) return null;
-            IGenomeDecoder<NeatGenome, IBlackBox> decoder = CreateGenomeDecoder();
             while (ret == null)
             {
-                ret = decoder.Decode(genome);
+                ret = genomeDecoder.Decode(genome);
             }
             return ret;
         }

@@ -9,6 +9,7 @@ using FarseerPhysics.Dynamics;
 using FarseerPhysics.Factories;
 using FarseerPhysics.SamplesFramework;
 using SensorsAndSuch.Extensions;
+using System;
 namespace SensorsAndSuch.Maps
 {
     public class Wall : BaseTile
@@ -18,7 +19,7 @@ namespace SensorsAndSuch.Maps
 
         public Wall(int X, int Y)
             : this(new Vector2(X, Y)) { }
-
+        float picSize = .75f/.64f;
         public Wall(Vector2 GridPos)
             : base("Tiles/Wall", GridPos)
         {
@@ -26,17 +27,23 @@ namespace SensorsAndSuch.Maps
             this.GridPos = GridPos;
 
             rectangle = BodyFactory.CreateRectangle(Globals.World, width: TileWidth, height: TileHeight, density: 5f);
-            rectangleSprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.AssetCreatorr.TextureFromShape(rectangle.FixtureList[0].Shape,
-                                                                    MaterialType.Squares,
-                                                                    Color.White, 1f));
+            int image = Globals.rand.Next(10);
+            string tex = "Tiles/tree";
+            if(image < 3) tex = "Tiles/tree";
+            else if(image < 6) tex = "Tiles/rock";
+            else  tex = "Tiles/wall";
+            rectangle.Position = new Vector2(GridPos.X * TileWidth, GridPos.Y * TileHeight);
+            rectangleSprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.content.Load<Texture2D>(tex));
             rectangle.Position = new Vector2(GridPos.X * TileWidth, GridPos.Y * TileHeight);
             rectangle.Friction = 0.75f;
+            rectangle.CollidesWith = Category.Cat1;
             color = GetColor();
+            color.A = 0;
         }
 
         internal static Color GetColor() 
         {
-            return new Color((int)(Globals.rand.Next(50) + 0), (int)(Globals.rand.Next(50) + 0), (int)(Globals.rand.Next(50) + 50));
+            return Color.SaddleBrown;// new Color((int)(Globals.rand.Next(50) + 0), (int)(Globals.rand.Next(50) + 0), (int)(Globals.rand.Next(50) + 50));
         }
 
         private Color GetColor(Vector2 gridPos)
@@ -50,10 +57,17 @@ namespace SensorsAndSuch.Maps
 
         public override void Draw(SpriteBatch batch)
         {
-            batch.Draw(rectangleSprite.Texture,
-                   Globals.map.ScreenFromPhysics(rectangle.Position), null,
-                   color, rectangle.Rotation, rectangleSprite.Origin, Globals.map.globalScale,
-                   SpriteEffects.None, 0f);
+
+            //color.A = (byte)Math.Max(0, color.A - 10);
+            //Color use = color.Combine(BaseColor, .3f);
+            //use.A = color.A;
+
+            color.A = (byte)(color.A * gotoAlpha + desiredAlpha * (1 - gotoAlpha));
+            if(color.A > 0)
+                batch.Draw(rectangleSprite.Texture,
+                       Globals.map.ScreenFromPhysics(rectangle.Position), null,
+                       Globals.map.globalEffect(color), rectangle.Rotation, rectangleSprite.Origin, picSize * Globals.map.globalScale,
+                       SpriteEffects.None, 0f);
         }
 
         internal override void Delete()

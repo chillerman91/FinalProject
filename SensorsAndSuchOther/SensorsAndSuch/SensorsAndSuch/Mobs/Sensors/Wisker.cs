@@ -46,7 +46,7 @@ namespace SensorsAndSuch.Mobs
             OffSet = offSet;
             color = defaultC;
         }
-        public Vector2 pt;
+
         public float Update()
         {
             distance = 1;

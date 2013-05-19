@@ -184,7 +184,10 @@ namespace SharpNeat.Genomes.Neat
             xw.WriteEndElement();
 
             // </Root>
+
             xw.WriteEndElement();
+	        xw.WriteEndDocument();
+            xw.Close();
         }
 
         /// <summary>

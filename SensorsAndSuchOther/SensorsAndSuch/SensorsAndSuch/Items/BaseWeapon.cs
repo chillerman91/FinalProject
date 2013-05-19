@@ -18,7 +18,7 @@ using SensorsAndSuch.Mobs;
 
 namespace SensorsAndSuch.Items
 {
-    public class BaseWeapon : Item
+    public abstract class BaseWeapon : Item
     {
         protected BaseMonster holder;
         int timesUsed = 0;
@@ -34,8 +34,10 @@ namespace SensorsAndSuch.Items
         {
             this.holder = holder;
             inUse = false;
-            damage = 50;
+            damage = 100;
         }
+
+        public abstract int Use();
 
         public virtual int StartUse()
         {
@@ -55,13 +57,17 @@ namespace SensorsAndSuch.Items
             if (!inUse) return;
             batch.Draw(Sprite.Texture,
                                Globals.map.ScreenFromPhysics(shape.Position), null,
-                               Color.White, shape.Rotation, Sprite.Origin, Globals.map.globalScale * 1f,
+                               Color.White, shape.Rotation, Sprite.Origin, Globals.map.globalScale * 1.5f,
                                SpriteEffects.None, 0f);
         }
 
         internal void kill()
         {
             shape.Dispose();
+        }
+
+        internal virtual void updatePosition()
+        {
         }
     }
 }

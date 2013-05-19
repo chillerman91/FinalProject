@@ -15,17 +15,13 @@ using SharpNeat.Phenomes;
 
 namespace SensorsAndSuch.Mobs
 {
-    public abstract class BaseMonster : BaseTile, IComparable
+    public abstract class BaseMonster : BaseTile
     {
         public enum MonTypes
         {
             Normal, Static, Player
         }
-
-        public abstract void Kill();
-        public abstract void TakeTurn();
-        public abstract void Draw(SpriteBatch batch);
-
+        
         #region Set as live
         protected int Level = 1;
         protected int exp = 0;
@@ -34,6 +30,10 @@ namespace SensorsAndSuch.Mobs
         protected int hunger;
         public float Age = 0;
         public int kills = 0;
+        public int MaxHealth = 100;
+        protected float speed = 1.2f;
+        public Vector2 Dir;
+        protected Vector2 CurrentGridPos;
         #endregion
 
         #region Set At Birth
@@ -45,49 +45,40 @@ namespace SensorsAndSuch.Mobs
         internal Body shape;
         #endregion
 
-        #region HW2
-        internal int areasHit = 0;
-        internal int currentArea;
-        internal float[] Scores;
+        public bool viewDebuging = false;
+        public abstract void Kill();
+        public abstract void TakeTurn();
+        public abstract void Draw(SpriteBatch batch);
+
+        #region Parameters For NEAT
         internal float Score;
-        internal Vector2 desiredEnd;
-
-        public virtual bool SetPathway(int path)
-        {
-            return false;
-        }
-
-        public virtual bool ChangePathway()
-        {
-            return false;
-        }
-
-        public virtual void SetScore()
-        {
-            Score = 0;
-            int i = 1;
-            for (i = 0; Scores != null && i < Scores.Length; i++)
-                Score += Scores[i];
-            Score /= (i +1);
-        }
-
-        public int CompareTo(Object obj)
-        {
-            BaseMonster other = obj as BaseMonster;
-            if (other != null)
-                return (int) ((other.Score - Score) * 100);
-            else
-                throw new ArgumentException("Object is not a BaseMonster");
-        }
-
-        #endregion
-
-        public int MaxHealth = 20;
-        protected float speed = 1.2f;
-        protected Vector2 Dir;
-        protected Vector2 CurrentGridPos;
         internal IBlackBox Brain;
         internal NeatGenome Genome;
+        #endregion
+
+        #region Methods for NEAT
+        public abstract void ScoreSelf();
+
+        internal void ResetGenome(NeatGenome neatGenome)
+        {
+            this.Genome = neatGenome;
+            this.Brain = Globals.NeatExp.GetBlackBoxFromGenome(this.Genome);
+            if (Genome != null)
+            {
+                if (Genome.SpecieIdx == 0)
+                    color = Color.Brown;
+                else if (Genome.SpecieIdx == 1)
+                    color = Color.BlanchedAlmond;
+                else if (Genome.SpecieIdx == 2)
+                    color = Color.BlueViolet;
+                else if (Genome.SpecieIdx == 3)
+                    color = Color.CadetBlue;
+                else if (Genome.SpecieIdx == 4)
+                    color = Color.Firebrick;
+                //color = new Color(Genome.SpecieIdx % 5f / 4f, Genome.SpecieIdx * 20 % 3f, 1 - Genome.SpecieIdx % 5f / 5f);
+            }
+        }
+        #endregion
 
         public BaseMonster(string tex, Vector2 GridPos, string Name, Vector2 moveDir, int NutVal, int Age, int id, NeatGenome Genome)
             :base (tex, GridPos)
@@ -112,23 +103,25 @@ namespace SensorsAndSuch.Mobs
             return "Strength(" + strength + ")\nHealth(" + health + ")\nAge(" + Age + ")";
         }
 
-        public int GetLevel(){return Level;}
+        public int GetLevel(){ return Level; }
 
-        public virtual void BackProp(float[] inputs, float[] output)
-        {/*
-            Brain.Flush();
-            float[] ret1 = Brain.Calculate(inputs);
-            float[] outers = Brain.BackProp(inputs, output);
-            Brain.Flush();
-            float[] ret2 = Brain.Calculate(inputs);
-            for (int i = 0; i < ret1.Length; i++)
-            {
-                if (Math.Abs(ret1[i] - output[i]) <= Math.Abs(ret2[i] - output[i]))
-                {
-                    return;
-                    throw new Exception("BackProp Gave bad change.");
-                }
-            }*/
+        public virtual void SetRandPos()
+        {
+            shape.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos());
+        }
+
+        public abstract void SetRandPosSafe(int tick);
+
+        internal void DoDamage(int p)
+        {
+            health -= p;
+        }
+
+        internal Vector2 GetPosition(float projected = 0, bool forceNonZero = false)
+        {
+            if (forceNonZero && Dir.Length() < .1f)
+                return shape.Position + new Vector2(1, 0) * projected;
+            return shape.Position + Dir * projected;
         }
 
         #region Static Methods/Properties
@@ -149,17 +142,5 @@ namespace SensorsAndSuch.Mobs
             return false;
         }
         #endregion
-
-        internal void DoDamage(int p)
-        {
-            health -= p;
-        }
-
-        internal void ResetGenome(NeatGenome neatGenome)
-        {
-            this.Genome = neatGenome;
-
-            this.Brain = Globals.NeatExp.GetBlackBoxFromGenome(this.Genome);
-        }
     }
 }

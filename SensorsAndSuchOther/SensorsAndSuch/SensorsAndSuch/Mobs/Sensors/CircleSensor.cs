@@ -30,6 +30,7 @@ namespace SensorsAndSuch.Mobs
         protected float radius;
         protected Color color = Color.White;
         protected List<Fixture> collided;
+        public int Count { get { return collided.Count; } }
         protected float WiskerR;
         public Texture2D texture { get; set; }
         #endregion

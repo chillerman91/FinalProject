@@ -49,16 +49,17 @@ namespace SensorsAndSuch.NEAT
     /// </summary>
     public abstract class SimpleNeatExperiment : INeatExperiment
     {
-        NeatEvolutionAlgorithmParameters _eaParams;
+        protected NeatEvolutionAlgorithmParameters _eaParams;
         NeatGenomeParameters _neatGenomeParams;
         string _name;
         int _populationSize;
         int _specieCount;
-        NetworkActivationScheme _activationScheme;
-        string _complexityRegulationStr;
-        int? _complexityThreshold;
+        protected NetworkActivationScheme _activationScheme;
+        protected string _complexityRegulationStr;
+        protected int? _complexityThreshold;
         string _description;
-        ParallelOptions _parallelOptions;
+        protected ParallelOptions _parallelOptions;
+        protected IGenomeDecoder<NeatGenome, IBlackBox> genomeDecoder;
 
         #region Abstract properties that subclasses must implement
         public abstract IPhenomeEvaluator<IBlackBox> PhenomeEvaluator { get; }
@@ -123,14 +124,22 @@ namespace SensorsAndSuch.NEAT
             _eaParams.SpecieCount = _specieCount;
             _neatGenomeParams = new NeatGenomeParameters();
         }
-        
         /// <summary>
         /// Load a population of genomes from an XmlReader and returns the genomes in a new list.
         /// The genome2 factory for the genomes can be obtained from any one of the genomes.
         /// </summary>
         public List<NeatGenome> LoadPopulation(XmlReader xr)
         {
-            return new List<NeatGenome>();// NeatGenomeUtils.LoadPopulation(xr, false, this.InputCount, this.OutputCount);
+            throw new NotImplementedException();
+            return null;
+        }
+        /// <summary>
+        /// Load a population of genomes from an XmlReader and returns the genomes in a new list.
+        /// The genome2 factory for the genomes can be obtained from any one of the genomes.
+        /// </summary>
+        public List<NeatGenome> LoadPopulation(XmlNode xr, NeatGenomeFactory factory)
+        {
+            return NeatGenomeXmlIO.LoadCompleteGenomeList(xr, false, factory);
         }
         
         /// <summary>
@@ -157,6 +166,7 @@ namespace SensorsAndSuch.NEAT
         /// This overload requires no parameters and uses the default population size.
         /// </summary>
         public NeatEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm()
+        
         {
             return CreateEvolutionAlgorithm(DefaultPopulationSize);
         }
@@ -197,7 +207,7 @@ namespace SensorsAndSuch.NEAT
             NeatEvolutionAlgorithm<NeatGenome> ea = new NeatEvolutionAlgorithm<NeatGenome>(_eaParams, speciationStrategy, complexityRegulationStrategy);
 
             // Create genome2 decoder.
-            IGenomeDecoder<NeatGenome, IBlackBox> genomeDecoder = new NeatGenomeDecoder(_activationScheme);
+            genomeDecoder = new NeatGenomeDecoder(_activationScheme);
 
             // Create a genome2 list evaluator. This packages up the genome2 decoder with the genome2 evaluator.
             IGenomeListEvaluator<NeatGenome> genomeListEvaluator = new ParallelGenomeListEvaluator<NeatGenome, IBlackBox>(genomeDecoder, PhenomeEvaluator, _parallelOptions);

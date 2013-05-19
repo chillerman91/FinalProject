@@ -12,18 +12,19 @@ namespace SensorsAndSuch.Screens
     {
         #region Datafields
         Vector2 BaseLocation = new Vector2(25, 635);
-        Texture2D PlayerPieceImage;
-        Text Level;
-        Player player;
-        Text PlayerHealth;
-        Text Strength;
-        Text exp;
         private string playerValues;
         private string[] whiskerValues;
         private string adjascentValues;
         private string pieSliceValues;
-        #endregion
         public static string GenInfo;
+        protected Player player;
+        internal States currentState = States.PlayerData;
+        public enum States 
+        { 
+            PlayerData = 0
+        }
+        #endregion
+
         public HUDPlayerInfo(ContentManager content, Player p)
         {
             player = p;
@@ -35,22 +36,20 @@ namespace SensorsAndSuch.Screens
             batch.DrawString(player.font, "MobNumber: " + Globals.Mobs.GetMobAmount() + "\n", new Vector2(50, 10), Color.Black);
             if (!string.IsNullOrEmpty(GenInfo))
             {
-                batch.DrawString(player.font, GenInfo, new Vector2(50, 80), Color.Black);
+                //batch.DrawString(player.font, GenInfo, new Vector2(50, 80), Color.Black);
+            } 
+            
+            string text = "";
+            switch (currentState)
+            { 
+                case States.PlayerData:
+
+                    text += player.BonusText + "\n";
+                    text += "Kills: " + player.kills + "\n";
+                    text += "Lives: " + player.lives + "\n";
+                    break;
             }
-            if (whiskerValues != null)
-            {
-                string text =  "MobNumber: " + Globals.Mobs.GetMobAmount() + "\n";
-                text += string.Format("Wisker Distances: [0]={0}, [1]={1}, [2]={2}", whiskerValues[0], whiskerValues[1], whiskerValues[2]);
-                //batch.DrawString(player.font, text, new Vector2(50, 30), Color.AliceBlue);
-            }
-            if (!string.IsNullOrEmpty(adjascentValues))
-            {
-                //batch.DrawString(player.font, adjascentValues, new Vector2(50, 50), Color.Black); 
-            }
-            if (!string.IsNullOrEmpty(pieSliceValues))
-            {
-                //batch.DrawString(player.font, pieSliceValues, new Vector2(50, 70), Color.Black); 
-            }
+            batch.DrawString(player.font, text, new Vector2(50, 80), Color.Black);
         }
 
         public void UpdatePlayer(string val)

@@ -22,7 +22,7 @@ namespace SensorsAndSuch.Screens
         protected override void LoadScreenContent(ContentManager content)
         {
             titleText = content.Load<Texture2D>("Images/TitleText");
-            gameButton = new Button(content, "Game", new Vector2(ScreenWidth / 2 - 100, 400), Color.Blue, Color.White);
+            gameButton = new Button(content, "Game", new Vector2(ScreenWidth / 2 - 100, ScreenHeight*3/4), Color.Blue, Color.White);
         }
 
         protected override void UpdateScreen(GameTime gameTime, DisplayOrientation displayOrientation)

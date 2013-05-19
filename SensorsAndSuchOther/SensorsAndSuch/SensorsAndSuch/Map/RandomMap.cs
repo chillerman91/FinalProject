@@ -16,22 +16,28 @@ namespace SensorsAndSuch.Maps
     public class RandomMap
     {        
         #region Properties
-        public static int RoomWidth = 12;
-        public static int RoomHeight = 8;
-        internal static int TicksInCreate = 500;
+        public static int RoomWidth = 6;
+        public static int RoomHeight = 4;
+        internal static int TicksInCreate;
 
-        private static int mapWidth = RoomWidth * 4;
-        private static int mapHeight = RoomHeight * 3;
+        internal static int mapWidth = RoomWidth * 8;
+        internal static int mapHeight = RoomHeight * 8;
+
+        internal static float mapWidthPhysics = RoomWidth * 8 * BaseTile.TileWidth;
+        internal static float mapHeightPhysics = RoomHeight * 8 * BaseTile.TileHeight;
+        internal Func<Color, Color> globalEffect = color => color;
 
         public int PosMod = 9;
         public float globalScale = .25f;
         public Vector2 ToLocation = new Vector2(0, 0);
 
+        internal static int screenheight = RoomHeight * 3;
+
         List<BaseTile>[,] grid;
 
         public int state = 0;
         Vector2 freePos;
-        BaseCrawler[] elementals;
+
         Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
             outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);
 
@@ -49,33 +55,101 @@ namespace SensorsAndSuch.Maps
 
         public RandomMap()
         {
-            BaseCrawler.AvgLife = 200;
+            BaseElemental.AvgLife = 200;
             grid = new List<BaseTile>[MapWidth, MapHeight];
             for (int x = 0; x < MapWidth; x++)
                 for (int y = 0; y < MapHeight; y++)
                     grid[x, y] = new List<BaseTile>();
         }
+        
+        public void CreateLargeCheckerBoard()
+        {
+            //Create inner room parts
+            for (int x = 0; x < MapWidth / RoomWidth; x++)
+            {
+                for (int y = 0; y < MapHeight / RoomHeight; y++)
+                {
+                    if ((x % 2 == 0 && y % 2 != 0) || (x % 2 != 0 && y % 2 == 0))
+                    {
+                        for (int i = 0; i < RoomWidth; i++)
+                        {
+                            for (int j = 0; j < RoomHeight; j++)
+                            {
+                                if (!(i==RoomWidth-1 && j == RoomHeight -1) && !(i==0 && j==0))
+                                    grid[x * RoomWidth + i, j + y * RoomHeight].Add(new Wall(new Vector2(x * RoomWidth + i, j + y * RoomHeight)));
 
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public void CreateSmallCheckerBoard()
+        {
+            //Create inner room parts
+            for (int x = 0; x < MapWidth / RoomWidth; x++)
+            {
+                for (int y = 0; y < MapHeight / RoomHeight; y++)
+                {
+                        for (int i = 0; i < RoomWidth; i++)
+                        {
+                            for (int j = 0; j < RoomHeight; j++)
+                            {
+                                if ((i % 2 == 0 && j % 2 != 0) || (i % 2 != 0 && j % 2 == 0))
+                                    grid[x * RoomWidth + i, j + y * RoomHeight].Add(new Wall(new Vector2(x * RoomWidth + i, j + y * RoomHeight)));
+
+                            }
+                        }
+                    
+                }
+            }
+        }
+        public void CreateLines()
+        {
+          for (int x = 0; x < MapWidth / RoomWidth; x++)
+                {
+                    for (int y = 0; y < MapHeight / RoomHeight; y++)
+                    {
+                        for (int i = 0; i < RoomWidth; i++)
+                        {
+                            for (int j = 0; j < RoomHeight; j++)
+                            {
+                                if (i % 2 == 0 && j + y * RoomHeight != 1 && j + y * RoomHeight != RandomMap.mapHeight - 2)
+                                    grid[x * RoomWidth + i, j + y * RoomHeight].Add(new Wall(new Vector2(x * RoomWidth + i, j + y * RoomHeight)));
+
+                            }
+                        }
+
+                    }
+                }
+}
         public int CreateMap()
         {
             if (state <= 0)
             {
-                for (int x = -1 * state; x < MapWidth; x++)
+
+                for (int x = 0; x < MapWidth; x++)
                 {
                     for (int y = 0; y < MapHeight; y++)
                     {
-                        if (grid[x, y].Count == 0)
+
+                        grid[x, y].Add(new Dirt(new Vector2(x, y)));
+                    }
+                }
+                CreateLargeCheckerBoard();
+                for (int x = 0; x < MapWidth; x++)
+                {
+                    for (int y = 0; y < MapHeight; y++)
+                    {
+                        foreach (BaseTile tile in grid[x, y])
                         {
-                            grid[x, y].Add(new Dirt(new Vector2(x, y)));
-                            grid[x, y].Add(new Wall(new Vector2(x, y)));
+                            tile.desiredAlpha = 255;
                         }
                     }
                 }
-                elementals = new BaseCrawler[20];
-
-                state--;
-                if (-1 * state >= MapWidth)
-                    state = 1;
+                BaseElemental.CreateElementals(grid);
+                state = 1;
                 return state;
 
             }
@@ -91,18 +165,35 @@ namespace SensorsAndSuch.Maps
                             grid[x, y].Add(new Dirt(new Vector2(x, y)));
                             grid[x, y].Add(new Wall(new Vector2(x, y)));
                         }
+                        foreach (BaseTile tile in grid[x, y])
+                        {
+                            tile.desiredAlpha = 0;
+                        }
                     }
                 }
                 return 4;
             }
-            else if (state % 50 == 5)
-            {
-                elementals[state / 50] = BaseCrawler.GetRandCrawler(grid);
-            }
-            for (int i = 0; i < elementals.Length && elementals[i] != null; i++)
-                elementals[i].TakeTurn(grid);
+
+            for (int i = 0; Globals.Debugging && i < BaseElemental.NumOfElementals; i++)
+               BaseElemental.TakeTurn(i, grid);
             state++;
             return 0;
+        }
+        
+        public void setDull() 
+        {
+            Color combine = Color.Gray;
+            globalEffect = color => color.Combine(combine, .05f);
+        }
+
+        public void setDead()
+        {
+            setNotDull();
+        }
+
+        public void setNotDull()
+        {
+            globalEffect = color => color;
         }
 
         public bool isInBounds(int i, int j, int Offset = 0)
@@ -211,11 +302,11 @@ namespace SensorsAndSuch.Maps
 
         #region Get Tiles or columns
 
-        public Vector2 GetRandomFreePos()
+        public Vector2 GetRandomFreePos(bool notNearPlayer = false)
         {
             int i = Globals.rand.Next(MapWidth);
             int j = Globals.rand.Next(MapHeight);
-            if (grid[i, j].Count == 2) return GetRandomFreePos();
+            if (grid[i, j].Count == 2 || (notNearPlayer && (new Vector2(i, j)- Globals.player.GridPos).Length() < 3)) return GetRandomFreePos();
             return new Vector2(i, j);
         }
 
@@ -258,6 +349,15 @@ namespace SensorsAndSuch.Maps
                 }
             }
             return amount;
+        }
+
+        internal Vector2 getScreenSizeInPhysics()
+        {
+            Vector2 temp = ToLocation;
+            ToLocation = new Vector2(0, 0);
+            Vector2 ret = PhysicsFromScreen(SensorsAndSuch.Screens.Screen.ScreenWidth, SensorsAndSuch.Screens.Screen.ScreenHeight);
+            ToLocation = temp;;
+            return ret;
         }
 
         public List<List<BaseTile>> GetAdjColumsToList(int i, int j, bool diagnols = false) 
@@ -338,24 +438,6 @@ namespace SensorsAndSuch.Maps
         }
         #endregion
 
-        public void Draw(SpriteBatch batch) {
-            //return;
-            for (int i = 0; i < MapWidth; i++)
-            {
-                for (int j = 0; j < MapHeight; j++)
-                {
-                    
-                   if ( grid[i, j].Count != 0) {
-                       foreach (BaseTile tile in grid[i, j])
-                       {
-                           tile.Draw(batch);
-                       }
-                   }
-                }
-            }
-            info.Draw(batch);
-        }
-
         #region Converisons
         //Farseer to Screen
         public Vector2 ScreenFromPhysics(Vector2 farseerPos)
@@ -371,43 +453,37 @@ namespace SensorsAndSuch.Maps
 
         public Vector2 GridFromPhysics(Vector2 farseerPos)
         {
-            return new Vector2(farseerPos.X / BaseTile.TileWidth, farseerPos.Y / BaseTile.TileHeight);
+            return new Vector2(farseerPos.X / BaseTile.TileWidth, farseerPos.Y / BaseTile.TileHeight) + new Vector2(BaseTile.TileWidth * .50f, BaseTile.TileHeight * .50f);
         }
 
         public Vector2 PhysicsFromGrid(Vector2 gridPos)
         {
             return new Vector2(gridPos.X * BaseTile.TileWidth, gridPos.Y * BaseTile.TileHeight);
         }
+
+        public Vector2 PhysicsFromScreen(int X, int Y)
+        {
+            return PhysicsFromGrid(GridFromScreen(X, Y, floor: false)) - new Vector2(BaseTile.TileWidth * .50f, BaseTile.TileHeight * .50f);
+        }
+
         //Convert from the Screen position to a gridPos
-        public Vector2 GridFromScreen(int X, int Y)
+        public Vector2 GridFromScreen(int X, int Y, bool floor = true)
         {
             Vector2 temp = GridFromPhysics(ToLocation);
-            temp =  new Vector2(X / (BaseTile.TileWidth * 100f), Y / (BaseTile.TileHeight * 100f)) / globalScale + temp;
-
-            return new Vector2((int)temp.X, (int)temp.Y);
+            temp = new Vector2(X / (BaseTile.TileWidth * 100f), Y / (BaseTile.TileHeight * 100f)) / globalScale + temp;
+            if (floor)
+                return new Vector2((int)temp.X, (int)temp.Y);
+            return new Vector2(temp.X, temp.Y);
         }
 
         #endregion
 
-        internal void Update()
+        internal void SetTextEmpty()
         {
-            for (int i = 0; i < MapWidth; i++)
-            {
-                for (int j = 0; j < MapHeight; j++)
-                {
-
-                    if (grid[i, j].Count != 0)
-                    {
-                        foreach (BaseTile tile in grid[i, j])
-                        {
-                            tile.Update();
-                        }
-                    }
-                }
-            }
+            info.ChangeText("");
         }
 
-        internal void Update(Inputs.GameInput input, int tick)
+        internal void UpdateText(Inputs.GameInput input)
         {
             int i, j;
             for (i = 0; i < MapWidth; i++)
@@ -418,8 +494,8 @@ namespace SensorsAndSuch.Maps
                     if (input.CheckMouseOver(tran, (int)(BaseTile.TileWidth * 100 * globalScale), (int)(BaseTile.TileHeight * 100 * globalScale)))
                     {
                         String Text = "X:" + i + " Y:" + j + " Count:" + grid[i, j].Count + " ";
-                        if(grid[i, j].Count != 0)  
-                            Text+= grid[i, j][0].hit;
+                        if (grid[i, j].Count != 0)
+                            Text += grid[i, j][0].hit;
                         info.ChangeText(Text);
                         info.Position = new Vector2(tran.X + BaseTile.TileWidth, tran.Y + BaseTile.TileHeight);
 
@@ -428,22 +504,33 @@ namespace SensorsAndSuch.Maps
                     }
                 }
             }
-            if (Globals.GamesStart && tick % 50 == 0)
-            {
-                for (i = 0; i < elementals.Length && elementals[i] != null; i++)
-                {
-                    elementals[i].age = 0;
-                    elementals[i].TakeTurn(grid, false);
-
-                }
-                i = Globals.rand.Next(MapWidth);
-                j = Globals.rand.Next(MapHeight);
-                if (grid[i, j].Count > 0)
-                    grid[i, j][grid[i, j].Count - 1].Update();
-            }
         }
 
-        internal void CreateBlockFromScreen(int X, int Y)
+        internal void UpdateTiles(int tick)
+        {
+            int l, i = tick % BaseElemental.NumOfElementals, j;
+
+            if (Globals.GamesStart)// && tick % 30 == 0)
+            {
+                for (i = 0; i < BaseElemental.NumOfElementals; i++)
+                {
+                    BaseElemental.TakeTurn(i, grid);
+                }
+                /*
+                l = Globals.rand.Next(MapWidth);
+                j = Globals.rand.Next(MapHeight);
+                if (grid[l, j].Count > 0)
+                    grid[l, j][grid[l, j].Count - 1].Dilute();
+
+                l = Globals.rand.Next(MapWidth);
+                j = Globals.rand.Next(MapHeight);
+                if (grid[l, j].Count > 0)
+                    grid[l, j][grid[l, j].Count - 1].AntiDilute();*/
+                
+            }    
+        }
+
+        internal void ToggleBlockFromScreen(int X, int Y)
         {
             Vector2 CreatePos = GridFromScreen(X, Y);
             X = (int) CreatePos.X; 
@@ -464,6 +551,67 @@ namespace SensorsAndSuch.Maps
                     grid[X, Y].RemoveAt(grid[X, Y].Count - 1);
                 }
             }
+        }
+
+        public void Draw(SpriteBatch batch) {
+
+            int range;
+            Vector2 pos;
+            if (Globals.player != null)
+            {
+                range = Globals.player.range;
+                pos = GridFromPhysics(Globals.player.GetPosition());
+            } 
+            else
+            {
+                pos = new Vector2(RandomMap.mapWidth/2, 0);
+                range = Globals.Debugging? RandomMap.mapWidth : 2;
+            }
+           
+         List<BaseTile>[,] near = GetAdjColumsToArray((int)pos.X, (int)pos.Y, range);
+
+         for (int i = 0; i < range*2+1; i++)
+         {
+             for (int j = 0; j < range*2+1; j++)
+             {
+                 if (near[i, j] != null && near[i, j].Count != 0)
+                 {
+                     foreach (BaseTile tile in (near[i, j]))
+                     {
+                         float val = (int) Math.Sqrt((i - range) * (i - range) + (j - range) * (j - range));
+                         val /= range;
+                         val *= val;
+                         val *= val;
+                         val *= 256;
+                                
+                         tile.Seen(Math.Max(0, 255 - (int)val));
+             
+                         tile.Draw(batch);
+                     }
+                 }
+             }
+         }
+         
+            info.Draw(batch);
+            /*
+            for (int i = 0; i < MapWidth; i++)
+            {
+                for (int j = 0; j < MapHeight; j++)
+                {
+
+                    if (grid[i, j].Count != 0)
+                    {
+                        foreach (BaseTile tile in grid[i, j])
+                        {
+                            tile.Draw(batch);
+                        }
+                    }
+                }
+            }
+            info.Draw(batch);
+            if(Globals.Debugging) BaseElemental.DrawElementals(batch);
+        
+             */
         }
 
         #region Old Stuff

@@ -17,6 +17,11 @@ namespace SensorsAndSuch.Extensions
             return new Vector2(vec.Y, vec.X);
         }
 
+        public static bool HasNan(this Vector2 vec)
+        {
+            return float.IsNaN(vec.X) || float.IsNaN(vec.Y);
+        }
+
         public static Vector2 Align(this Vector2 vec)
         {
             Vector2 ret ;

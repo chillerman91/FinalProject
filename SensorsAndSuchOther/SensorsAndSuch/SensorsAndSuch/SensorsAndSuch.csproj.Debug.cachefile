@@ -7,6 +7,10 @@ Content\Fonts\buttonFont.xnb
 Content\Fonts\scoreFont.xnb
 Content\Fonts\screenFont.xnb
 Content\Fonts\debugFont.xnb
+Content\Mobs\BadGuy.xnb
+Content\Tiles\rock.xnb
+Content\Tiles\tree.xnb
+Content\Items\sword.xnb
 SharpNeatDomainsExtra.experiments.xml
 SharpNeatDomains.experiments.xml
 log4net.properties

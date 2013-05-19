@@ -28,8 +28,9 @@ namespace SensorsAndSuch.Items
         Materials material;
         int timesUsed = 0;
         int timesSinceLast = 0;
-
-
+        bool on = false;
+        int lastTickOn = 0;
+        static int lifeSpan = 100;
         //Stats
         int hitCounter = 0;
         int killCounter = 0;
@@ -39,11 +40,9 @@ namespace SensorsAndSuch.Items
         {
             this.material = material;
             shape = BodyFactory.CreateRectangle(Globals.World, width: .6f, height: .1f, density: 1f);
-            Sprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.AssetCreatorr.TextureFromShape(shape.FixtureList[0].Shape,
-                                                                                MaterialType.Squares,
-                                                                                Color.AliceBlue, 1f));
-            //shape.CollisionCategories = Category.Cat2;
-            //shape.CollidesWith = Category.All;
+            Sprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.content.Load<Texture2D>("Items/sword"));
+            //shape.CollisionCategories = Category.Cat3;
+            //shape.CollidesWith = Category.Cat3;
 
             shape.FixtureList[0].IsSensor = true;
             shape.FixtureList[0].OnCollision += CollisionHandler;
@@ -56,11 +55,12 @@ namespace SensorsAndSuch.Items
         public bool CollisionHandler(Fixture fixtureA, Fixture fixtureB, Contact contact)
         {
             BaseMonster mon = null;
-            if (fixtureB.Body != holder.shape && BaseMonster.GetMonster(fixtureB.Body.BodyId, ref mon)  && mon.Age > .2f)
+            if (inUse && fixtureB.Body != holder.shape && BaseMonster.GetMonster(fixtureB.Body.BodyId, ref mon))
             {
                 hitCounter++;
                 if (mon.health <= 0) return false;
-                mon.DoDamage(damage * 2);
+                mon.DoDamage(damage);
+                mon.shape.ApplyLinearImpulse(shape.Rotation.GetVecFromAng()/5f);
                 if (mon.health <= 0)
                 {
                     //mon.MakeChildren(1);
@@ -75,20 +75,26 @@ namespace SensorsAndSuch.Items
         }
 
         #endregion
-        
-        public override int StartUse()
+
+
+        internal override void updatePosition()
         {
             shape.Rotation = holder.shape.Rotation;
-            int temp = killCounter;
-            shape.Position = holder.shape.Position + shape.Rotation.GetVecFromAng()* .23f;
-            base.StartUse();
-            killCounter = 0;
-            return temp;
+            shape.Position = holder.shape.Position + (shape.Rotation + (float)Math.PI/2f).GetVecFromAng() * -0.0f + shape.Rotation.GetVecFromAng() * .25f;//
         }
 
-        public override bool EndUse()
+        public void SetOn()
         {
-            return false;
+            on = true;
+            //timesSinceLast = Globals.get
+        }
+
+        public override int Use()
+        {
+            updatePosition();
+            int temp = killCounter;
+            killCounter = 0;
+            return temp;
         }
 
         #region Static methods

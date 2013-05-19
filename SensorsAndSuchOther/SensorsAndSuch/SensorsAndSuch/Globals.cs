@@ -9,6 +9,7 @@ using FarseerPhysics.Dynamics;
 using FarseerPhysics.SamplesFramework;
 using SensorsAndSuch.NEAT;
 using System.Xml;
+using SensorsAndSuch.Screens;
 
 namespace SensorsAndSuch
 {
@@ -25,10 +26,15 @@ namespace SensorsAndSuch
         public static AssetCreator AssetCreatorr { get; set; }
         public static NeatExp NeatExp { get; set; }
         public static ScreenManager ScreenManager { get; set; }
-        public static void SetGeneral(ContentManager content, GraphicsDevice device, World World)
+        public static int tick = 0;
+        public static Gameplay GamplayScreen;
+        public static bool Debugging = true;
+        public static GameTime GameTime;
+        public static void SetGeneral(ContentManager content, GraphicsDevice device, World World, Gameplay GamplayScreen)
         {
             Globals.content = content;
             Globals.Device = device;
+            Globals.GamplayScreen = GamplayScreen;
             AssetCreatorr = new AssetCreator(device);
             Globals.World = World;
             Globals.NeatExp = new NeatExp();

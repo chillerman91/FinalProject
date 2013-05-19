@@ -57,7 +57,7 @@ namespace SensorsAndSuch
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.Tan);
+            GraphicsDevice.Clear(Color.White);
             screen.Draw();
             base.Draw(gameTime);
         }

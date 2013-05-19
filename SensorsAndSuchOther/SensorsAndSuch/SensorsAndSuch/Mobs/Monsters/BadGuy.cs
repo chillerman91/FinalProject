@@ -22,86 +22,82 @@ using SharpNeat.Phenomes;
 //magician: teleport: time warp
 //visible only when seen
 // invisible: seen with dust
+
 namespace SensorsAndSuch.Mobs
 {
     public class BadGuy : BaseMonster
     {
-        private FarseerPhysics.SamplesFramework.Sprite Sprite;
+        protected FarseerPhysics.SamplesFramework.Sprite Sprite;
 
-        #region Parameters For NN
-        protected static int wiskerNumber = 6;
+        #region properties For NN
+        protected static int wiskerNumber = 4;
         protected Wisker[] Wiskers = new Wisker[wiskerNumber];
-        AgentDataSensor AdjDataGetter;
-        int turns = 0;
+        protected AgentDataSensor AdjDataSensor;
         int countWisLength = 1;
         float lengths = 3;
         public Vector2 StartPos;
+        public double energy = 10;
         #endregion
 
+
+        int lastHealth = 0;
+        internal static int TicksPerLife;
+        int ticksAtLastWarp = 0;
         public bool FirstGen = false;
         int Birth = 0;
+        float ScoreDist = 0;
+        float MurderBonus = 0;
         static int LifeSpan = 20;
 
+        public static int BrainInputs { get { return wiskerNumber + AgentDataSensor.TotalRetVales + 2/* For GPS*/ + 0/* For Energy level*/; } }
+
+        Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
+             outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);
         protected BaseWeapon weapon;
 
         #region Constructors
-        public BadGuy(Vector2 GridPos, BaseMonster parent, int id, int age = 0, BodyType type = BodyType.Dynamic)
-            : this(GridPos, Color.AntiqueWhite, id, age, type, circleRadius: .15f, parent: parent, Genome: null)
+        public BadGuy(Vector2 GridPos, BaseMonster parent, int id, int age = 0)
+            : this(GridPos, Color.AntiqueWhite, id, age, circleRadius: .15f, parent: parent, Genome: null)
         {
         }
 
-        public BadGuy(Vector2 GridPos, int id, NeatGenome Genome, int age = 0, BodyType type = BodyType.Dynamic)
-            : this(GridPos, Color.ForestGreen, id, age, type, circleRadius: .15f, parent: null, Genome: Genome)
+        public BadGuy(Vector2 GridPos, int id, NeatGenome Genome, int age = 0)
+            : this(GridPos, Color.White, id, age, circleRadius: .15f, parent: null, Genome: Genome)
         {
         }
 
 
-        public BadGuy(Vector2 GridPos, Color color, int id, int age, BodyType bodType, float circleRadius, BaseMonster parent, NeatGenome Genome)
+        public BadGuy(Vector2 GridPos, Color color, int id, int age, float circleRadius, BaseMonster parent, NeatGenome Genome)
             : base(null, GridPos, "Snake" + id, GetRandDir(), 15, 0, id, Genome)
         {
             shape = BodyFactory.CreateCircle(Globals.World, radius: circleRadius, density: 1f);
-            Sprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.AssetCreatorr.TextureFromShape(shape.FixtureList[0].Shape,
-                                                                                MaterialType.Squares,
-                                                                                color, 1f));
             
+            Sprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.content.Load<Texture2D>("Mobs/BadGuy"));
+
+            Score = 0;
             shape.LinearDamping = 3f;
             shape.AngularDamping = 3f;
-
-            shape.BodyType = bodType;
-            shape.Rotation = 0;// Globals.rand.Next(360);
+            ticksAtLastWarp = 0;
+            shape.BodyType = BodyType.Dynamic;
             Vector2 pos = GridPos;
             shape.Position = new Vector2(pos.X * TileWidth, pos.Y * TileHeight);
-            StartPos = new Vector2(pos.X * TileWidth, pos.Y * TileHeight);
+            shape.Rotation = Globals.rand.Next(360);
             shape.Friction = 0.0f;
-
+            shape.CollidesWith = Category.Cat1;
             Wiskers[0] = new Wisker(attatched: shape, offSet: 0, WiskerLength: 2f);
-            Wiskers[1] = new Wisker(attatched: shape, offSet: (float)Math.PI / 2f, WiskerLength: 4f);
-            Wiskers[2] = new Wisker(attatched: shape, offSet: (float)Math.PI / -2f, WiskerLength: 4f);
-            Wiskers[3] = new Wisker(attatched: shape, offSet: (float)Math.PI / 4f, WiskerLength: 4f);
-            Wiskers[4] = new Wisker(attatched: shape, offSet: (float)Math.PI / -4f, WiskerLength: 4f);
-            Wiskers[5] = new Wisker(attatched: shape, offSet: (float)Math.PI, WiskerLength: 2f);
+            Wiskers[1] = new Wisker(attatched: shape, offSet: (float)Math.PI / 2.4f, WiskerLength: 4f);
+            Wiskers[2] = new Wisker(attatched: shape, offSet: (float)Math.PI / -2.4f, WiskerLength: 4f);
+            //Wiskers[3] = new Wisker(attatched: shape, offSet: (float)Math.PI / 4f, WiskerLength: 4f);
+            //Wiskers[4] = new Wisker(attatched: shape, offSet: (float)Math.PI / -4f, WiskerLength: 4f);
+            Wiskers[3] = new Wisker(attatched: shape, offSet: (float)Math.PI, WiskerLength: 2f);
 
-            AdjDataGetter = new AgentDataSensor(this.shape, new Color(255, 100, 50, 100));
-            //shape.CollisionCategories = Category.Cat2;
-            //shape.CollidesWith = Category.Cat1;
-            Scores = new float[MobManager.pathways];
-            for (int i = 0; i < MobManager.pathways; i++)
-                Scores[i] = 0;
+            AdjDataSensor = new AgentDataSensor(shape, new Color(255, 100, 50, 100));
+
+
+            shape.CollisionCategories = Category.Cat1;
+            shape.CollidesWith = Category.Cat1;
             
-            if (parent == null)
-            {
-                Birth = unchecked((int)DateTime.Now.Ticks) / (10000 * 1000);// +Globals.rand.Next(30);
-                //Brain = new NeatGenome();
-                    //(inputs: Wiskers.Length + AgentDataSensor.TotalRetVales + 1 + 1, outputs: 3, HiddenRows: 1, NodesPerRow: 10);
-                FirstGen = true;
-            }
-            else
-            {
-                Birth = unchecked((int)DateTime.Now.Ticks) / (10000 * 1000);
-                this.Genome = parent.Genome.CreateOffspring(0);
-                this.Brain = Globals.NeatExp.GetBlackBoxFromGenome(this.Genome);
-                //Brain.Modify(2, 2, .5f);
-            }
+            ResetNNEvaluators();
             AddMonster(this, shape.BodyId);
         } 
 
@@ -109,92 +105,106 @@ namespace SensorsAndSuch.Mobs
 
         #region Methods for NeuroEvolution
 
-        public void ScoreSelf()
+        public override void ScoreSelf()
         {
-            turns -= 60;
-            turns = Math.Max(0, turns);
-            Scores[currentArea] = lengths * 100 / countWisLength + (StartPos - shape.Position).LengthSquared()/4 + (50 - turns*turns)*.5f;
-            //genome.EvaluationInfo.SetFitness(fitnessInfo._fitness);
-            //genome.EvaluationInfo.AuxFitnessArr = fitnessInfo._auxFitnessArr;
+            double ScoreLen = lengths / countWisLength;
+            double ScoreLenPercent = 100 * ScoreLen;
+            ScoreDist += (StartPos - shape.Position).Length();
+            if (ScoreDist < 3)
+                MurderBonus = 0;
+            double Score = Math.Pow(20*ScoreDist * ScoreLen + 100*MurderBonus * MurderBonus * MurderBonus, 1/5);
+
+            Genome.EvaluationInfo.SetFitness(Math.Max(0, Score));
+            Genome.EvaluationInfo.AuxFitnessArr = null;
+            ResetNNEvaluators();//
         }
 
         public void ResetNNEvaluators()
         {
+            //shape.Rotation = Globals.rand.Next(360);
+
             StartPos = shape.Position;
+            ticksAtLastWarp = 0; 
+            ScoreDist = 0;
             lengths = 3;
+            energy = 10;
+            MurderBonus = 1;
             countWisLength = 1;
-            turns = 0;
-        }
-
-        public override bool SetPathway(int path)
-        {
-            for (int i = 0; i < MobManager.pathways; i++)
-                Scores[i] = 0;
-            SetRandPos();
-            shape.Rotation = 0;// (float)Math.Atan2((double)(desiredEnd.Y - Globals.Mobs.pathwayPts[currentArea * 2].Y), (double)(desiredEnd.X - Globals.Mobs.pathwayPts[currentArea * 2].X));
-            ResetNNEvaluators();
-            areasHit = 0;
-            return true;
-        }
-
-        public override bool ChangePathway()
-        {
-            areasHit++;
-            if (areasHit > MobManager.pathways)
-                throw new Exception("To many ChangePathway Calls");
-            ScoreSelf();
-            currentArea = (currentArea + 1) % MobManager.pathways;
-            shape.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos());
-            ResetNNEvaluators();
-            return true;
-        }
-
-        public override void BackProp(float[] inputs, float[] output)
-        {
-            return;
-            float[] ret = new float[3];
-            for (int i = 0; i < Wiskers.Length; i++)
-                ret[i] = (Wiskers[i].Update());
-            if (FirstGen)
-                base.BackProp(inputs: ret, output: output);
         }
         #endregion
 
-        public void SetRandPos()
+        //Resets the agents position randomly, without effecting the score
+        public override void SetRandPosSafe(int tick)
         {
-            shape.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos());
+            ScoreDist += (StartPos - shape.Position).Length();
+
+            shape.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos(notNearPlayer: true));
+            shape.LinearVelocity = new Vector2(0, 0);
+            weapon.updatePosition();
+            StartPos = shape.Position;
         }
 
         public override void TakeTurn()
         {
-            Age = getAgeRatio();
+            Age = .5f;
+
             //Starting Checks 
             if (Age < 0) return;
             if (Globals.GamesStart && Age > .2f && weapon == null)
+            {
                 weapon = new Sword(this, Item.Materials.Iron);
+                weapon.StartUse();
+            }
 
             if (weapon != null)
             {
-                lengths += 20 * weapon.StartUse();
+                int numKilled = weapon.Use();
+                if (numKilled != 0 && (shape.Position- StartPos).LengthSquared() < 4)
+                {
+                    //MurderBonus *= MurderBonus;
+                    MurderBonus += .2f * numKilled;
+                    MurderBonus *= MurderBonus;
+                    MurderBonus = Math.Min(MurderBonus, 6000);
+                }
             }
+                    
+            // MurderBonus += AdjDataSensor.count; 
 
             if (health <= 0)
             {
-                SetRandPos();
+                SetRandPosSafe(Globals.tick);
                 health = MaxHealth;
-            }           
-            if (Globals.GamesStart && Age >= 1.0f)
+            }
+            if (health != lastHealth)
             {
-                //MakeChildren(Globals.Mobs.Compare(shape.Position, lengths, turns));
-                //Globals.Mobs.KillMonster(id);
+                adjColor = Color.Red;
+            }
+            lastHealth = health;
+            //Deactivated because Age isn't being used
+            if (false && Globals.GamesStart && Age >= 1.0f)
+            {
+                MakeChildren(1);
+                Globals.Mobs.KillMonster(id);
             }
 
             #region Brain calculations
             //Set up inputs
             Brain.ResetState();
             ISignalArray BrainIn = Brain.InputSignalArray;
-            for (int i = 0; i < Wiskers.Length;i++ )
-                BrainIn[i] = Wiskers[i].Update();
+            int brainInIndex = 0;
+            for (brainInIndex = 0; brainInIndex  < Wiskers.Length; brainInIndex ++) {
+                BrainIn[brainInIndex] = Wiskers[brainInIndex].Update();
+            }
+            float[] proximalAgents = AdjDataSensor.Update(shape.Rotation.GetVecFromAng());
+            foreach (float proxAgent in proximalAgents)
+            {
+                BrainIn[brainInIndex] = proxAgent;
+                brainInIndex++;
+            }
+            BrainIn[brainInIndex++] = shape.Position.X / RandomMap.mapWidthPhysics;
+
+            BrainIn[brainInIndex++] = shape.Position.Y / RandomMap.mapHeightPhysics;
+            //BrainIn[brainInIndex++] = energy / 10;
             //AdjDataGetter.Update(shape.Rotation.GetVecFromAng(), Wiskers.Length, BrainIn);
             if (BrainIn[0] < 0 || BrainIn[1] < 0)
                 throw new Exception("Error in BrainInVAl");
@@ -206,60 +216,92 @@ namespace SensorsAndSuch.Mobs
             //set up outputs
             if ((double)BrainOut[0] == double.NaN || (double)BrainOut[0] == double.NaN)
                 throw new Exception("Error in Brain Out Error");
-            BrainOut[0] = BrainOut[0] * 2 - 1;
-            //otherBrain = BrainOut[2];
+
             double ret = BrainOut[0];
-            
-            if (BrainOut[0] > .9f)
-            {
-                BrainOut[0] = 1f;
-                turns++;
-            }
-            else if (BrainOut[0] < -.9f)
-            {
-                BrainOut[0] = -1f;
-                turns++;
-            }
-            else
-            {
-                BrainOut[0] = 0f;
-            }
+            //BrainOut[0] *= 4;// BrainOut[0];
+
+            //otherBrain = BrainOut[2];
 
             #endregion
+            
 
             //Change average Wisker length
             countWisLength++;
-            lengths += Math.Min(1, (float) BrainIn[0]);
+            lengths += (float)(BrainIn[0] * BrainIn[0]);
 
-            //Change Agent Physics
-            shape.Rotation += (float)(BrainOut[0] * Math.PI / 2f);
-            Vector2 dir = shape.Rotation.GetVecFromAng();
-            shape.ApplyForce(dir * speed, shape.Position);
+            //Change Agent's Physics
+            Vector2 Dir = shape.Rotation.GetVecFromAng();
+            if (energy > 0)
+            {
+                if (energy >= BrainOut[1])
+                {
+
+                    energy -= BrainOut[1];
+                    BrainOut[1] = BrainOut[1] * 2 - 1;
+                    shape.ApplyForce(Dir * (float)BrainOut[1] * speed, shape.Position);
+                }
+                if (energy >= BrainOut[0])
+                {
+                    energy -= BrainOut[0];
+                    BrainOut[0] *= BrainOut[0];
+                    BrainOut[0] = BrainOut[0] * 2 - 1;
+                    shape.Rotation += (float)(BrainOut[0] * Math.PI / 2f / 10);
+                }
+
+                if (energy >= BrainOut[2])
+                {
+                    energy -= BrainOut[2];
+                    BrainOut[2] = BrainOut[2] * 2 - 1;
+                    shape.ApplyForce(Dir.Flip() * (float)BrainOut[2], shape.Position);
+                }
+                if (energy < 1)
+                {
+                    //energy = -10;
+                }
+            }
+            energy = Math.Min(energy + 1.5, 10);
 
         }
+
+        //removes this agent if its behavior is clearily bad and replaces it with a fresh creature.
         protected void IdiotThreshold()
         {
-            if (turns > 200 || lengths / countWisLength < .1)
-            {
-                Globals.Mobs.KillMonster(id);              
-                //Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, gridPos: Globals.map.GetRandomFreePos());
-            }
         }
+
         //gets the age of the agent based on a range from 0 - 1
         public float getAgeRatio()
         {
             return Math.Abs((float)(unchecked((int)DateTime.Now.Ticks) / (10000 * 1000) - Birth) / (float)LifeSpan) % 1.2f;
         }
 
+        //Returns a string describing the agent
+        public override string GetInfo()
+        {
+            double ScoreLen = lengths / countWisLength;
+            double ScoreLenPercent = 100 * ScoreLen;
+            double ScoreDistT = ScoreDist + (StartPos - shape.Position).Length();
+            double Score = ScoreLen * ScoreLen * 50 * ScoreDistT * ScoreDistT + MurderBonus;
+            return String.Format("Speies({0:D})\nScoreLen({1:F2})\nScoreDist({2:F2})\nMurderBonus({3:F2})\nScore({4:F2})", Genome.SpecieIdx, ScoreLenPercent, ScoreDistT, MurderBonus, Score);
+        }
+
         public override void Draw(SpriteBatch batch)
         {
-            Wiskers[0].Draw(batch);
+            if (viewDebuging)
+            {                
+                for (int i = 0; i < Wiskers.Length; i++)
+                    Wiskers[i].Draw(batch);
+                info.ChangeText(GetInfo());
+                info.Position = Globals.map.ScreenFromPhysics(shape.Position);
+                info.Draw(batch);
+                AdjDataSensor.Draw(batch);
+            }
             //AdjDataGetter.Draw(batch);
             if (weapon != null) weapon.Draw(batch);
             batch.Draw(Sprite.Texture,
                                Globals.map.ScreenFromPhysics(shape.Position), null,
-                               GetAgeColor(), shape.Rotation, Sprite.Origin, Globals.map.globalScale * 1f,
+                               Globals.map.globalEffect(adjColor == null ? color : (Color)adjColor), shape.Rotation, Sprite.Origin, Globals.map.globalScale * .75f,
                                SpriteEffects.None, 0f);
+            adjColor = null;
         }
 
         // Disposes needed variables for removing the agent
@@ -267,7 +309,7 @@ namespace SensorsAndSuch.Mobs
         {
             base.Delete();
             shape.Dispose();
-            AdjDataGetter.Kill();
+            AdjDataSensor.Kill();
             if (weapon != null)
                 weapon.kill();
         }

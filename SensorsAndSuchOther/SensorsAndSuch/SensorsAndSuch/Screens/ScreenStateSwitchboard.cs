@@ -2,13 +2,40 @@
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
+using Microsoft.Xna.Framework.Input;
+using SensorsAndSuch.Inputs;
 
 namespace SensorsAndSuch.Screens
 {
+    public class SwitchData 
+    {
+        ScreenState from;
+        Keys key;
+        Func<bool> canTranfer;
+        public ScreenState to { get; private set;}
+
+        internal SwitchData(ScreenState from, Keys key, Func<bool> canTranfer, ScreenState to)
+        {
+            this.from = from;
+            this.key = key;
+            this.canTranfer = canTranfer;
+            this.to = to;
+        }
+
+        internal bool shouldTranfer(GameInput input)
+        {
+            return !input.PreviousKeyboardState.IsKeyDown(key) && input.CurrentKeyboardState.IsKeyDown(key) && canTranfer();
+        }
+    }
+    
     public enum ScreenState
     {
         Title,
-        Gameplay
+        CreatingMap,
+        Playing,
+        AnlyseCreatures,
+        MapEditing
     }
 
     class ScreenStateSwitchboard
@@ -44,9 +71,26 @@ namespace SensorsAndSuch.Screens
                         break;
                     }
 
-                case ScreenState.Gameplay:
+                case ScreenState.Playing:
                     {
-                        ChangeScreen(screenState, new CreateScreen(CreateGameplayScreen));
+                        ChangeScreen(screenState, new CreateScreen(CreatePlayingScreen));
+                        break;
+                    }
+                case ScreenState.MapEditing:
+                    {
+                        ChangeScreen(screenState, new CreateScreen(CreateMapEditing));
+                        break;
+                    }
+
+                case ScreenState.AnlyseCreatures:
+                    {
+                        ChangeScreen(screenState, new CreateScreen(CreateAnalyzeCreatures));
+                        break;
+                    }
+                    
+                 case ScreenState.CreatingMap:
+                    {
+                        ChangeScreen(screenState, new CreateScreen(CreateCreatingMap));
                         break;
                     }
             }
@@ -64,17 +108,32 @@ namespace SensorsAndSuch.Screens
             currentScreen = screens[screenState];
             currentScreen.Activate();
         }
-
+        #region Creating Screen
         private Screen CreateTitleScreen()
         {
             return new Title(game, batch, new Screen.ChangeScreen(ChangeScreen), graphics);
         }
 
-        private Screen CreateGameplayScreen()
+        private Screen CreatePlayingScreen()
         {
-            return new Gameplay(game, batch, new Screen.ChangeScreen(ChangeScreen), graphics, Device);
+            return new PlayingScreen(game, batch, new Screen.ChangeScreen(ChangeScreen), graphics, Device);
         }
 
+        private Screen CreateAnalyzeCreatures()
+        {
+            return new AnalyzeCreatures(game, batch, new Screen.ChangeScreen(ChangeScreen), graphics, Device);
+        }
+
+        private Screen CreateMapEditing()
+        {
+            return new MapEditing(game, batch, new Screen.ChangeScreen(ChangeScreen), graphics, Device);
+        }
+
+        private Screen CreateCreatingMap()
+        {
+            return new CreatingMap(game, batch, new Screen.ChangeScreen(ChangeScreen), graphics, Device);
+        }
+        #endregion
         public void Update(GameTime gameTime)
         {
             currentScreen.Update(gameTime);

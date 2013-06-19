@@ -85,7 +85,7 @@ namespace SensorsAndSuch.Maps
 
         public bool CollisionHandler(Fixture fixtureA, Fixture fixtureB, Contact contact)
         {
-            if (!collided.Contains(fixtureB) && BaseMonster.monsters.ContainsKey(fixtureB.FixtureId))
+            if (!collided.Contains(fixtureB) && Globals.Mobs.ContainsKey(fixtureB.FixtureId))
                 collided.Add(fixtureB);
             return true;
         }
@@ -257,7 +257,7 @@ namespace SensorsAndSuch.Maps
                     */
 
                 }
-                if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+                if (Globals.screen.currentState == Screens.PlayingScreen.WorldState.Ghost)
                 {
                     foreach (BaseTile tile in column)
                     {
@@ -318,7 +318,7 @@ namespace SensorsAndSuch.Maps
 
                 Grid[pos1, pos2][Grid[pos1, pos2].Count - 1].color = GetColor().Combine(Grid[pos1, pos2][Grid[pos1, pos2].Count - 1].color);
 
-                if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+                if (Globals.screen.currentState == Screens.PlayingScreen.WorldState.Ghost)
                 {
                     foreach (BaseTile tile in (Grid[pos1, pos2]))
                     {

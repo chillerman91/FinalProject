@@ -6,7 +6,7 @@ using SensorsAndSuch.Sprites;
 
 namespace SensorsAndSuch.Inputs
 {
-    class GameInput
+    internal class GameInput
     {
         public MouseState CurrentMouseState;
         public MouseState PreviousMouseState;

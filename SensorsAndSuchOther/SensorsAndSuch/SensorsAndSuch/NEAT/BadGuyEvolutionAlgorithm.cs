@@ -134,6 +134,7 @@ namespace SharpNeat.EvolutionAlgorithms
 
 
             #endregion
+            OnUpdateEvent();
             return _genomeList;
 
         }
@@ -142,7 +143,10 @@ namespace SharpNeat.EvolutionAlgorithms
         /// Progress forward by one generation. Perform one generation/iteration of the evolution algorithm.
         /// </summary>
         public void EvaluateGeneration()
-        {            // Sort the genomes in each specie. Fittest first (secondary sort - youngest first).
+        {
+
+            _currentGeneration++;
+            // Sort the genomes in each specie. Fittest first (secondary sort - youngest first).
             SortSpecieGenomes();
 
             // Update stats and store reference to best genome.

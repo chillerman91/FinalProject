@@ -10,19 +10,18 @@ using SensorsAndSuch.Maps;
 using SensorsAndSuch.Texts;
 using FarseerPhysics.Dynamics;
 using SharpNeat.Genomes.Neat;
+using SharpNeat.EvolutionAlgorithms;
 
 namespace SensorsAndSuch.Mobs
 {
-
     public class MobManager
     {
-        public BaseMonster[] Monsters;
         public static int pathways = 5;
 
-        public List<Vector2> pathwayPts = new List<Vector2>();
         Reaper Reaper;
-        public static int MaxMonsters = 151;
 
+        public int numGenuses = 2;
+        public GenusManager<NEATBadGuy>[] Genuses = new GenusManager<NEATBadGuy>[2];
         public static int mobGroups;
         Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
                      outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);
@@ -33,80 +32,37 @@ namespace SensorsAndSuch.Mobs
         public int distancesUsed = 0;
         public int counter = 0;
 
+        #region Population Amounts
+        int genuses = 2;
+        int rabbittPopAmount = 30;
+        int killerPopAmount = 30;
+        public int mobAmount { get { return killerPopAmount + rabbittPopAmount; } }
+        #endregion
+
+        BadGuyEvolutionAlgorithm<NeatGenome>[] EvolutionAlgorithms;
+
         public MobManager() 
         {
             Reaper = new Reaper(new Vector2(0, 0), 0);
-            Monsters = new BaseMonster[MaxMonsters];
         }
 
         #region Adding things to the map
 
-        public bool AddPlayer(Player player)
-        {
-            int i = GetMobAmount();
-            Monsters[i] = player;
-            return true;
-        }
-
-        public bool AddMonster(BaseMonster.MonTypes monType, Vector2 gridPos, NeatGenome genome)
-        {
-            int i = GetMobAmount();
-            if (i >= MaxMonsters) return false;
-            if (monType == BaseMonster.MonTypes.Normal)
-                Monsters[i] = new BadGuy(gridPos, i, genome);
-            return true;
-        }
-
-        internal bool AddMonster(BaseMonster.MonTypes monTypes, BaseMonster badGuy, Vector2 vector2)
-        {
-            int i = GetMobAmount();
-            if (i >= MaxMonsters)
-                return false;
-            Monsters[i] = new BadGuy(vector2, badGuy, i);
-            return true;
-        }
-
-        
-        public bool AddMonster()
-        {
-            throw new NotImplementedException();
-        }
-
-        internal void AddMonster(BaseMonster mon1, BaseMonster mon2)
-        {
-
-            throw new NotImplementedException();
-        }
-
         #endregion
 
         #region Getters and Setters
-
-        public BaseMonster GetMobAt(int id)
-        {
-            return Monsters[id];
-        }
-
-        internal int GetMobAmount()
-        {
-            int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
-            {
-                i++;
-            }
-            return i;
-        }
-
+        /*
         internal void SetMobsDebugging(bool setValue)
         {
             int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
+            foreach (KeyValuePair<int, BaseMonster> keyVal in monsters)
             {
-                Monsters[i].viewDebuging = setValue;
+                BaseMonster mon = keyVal.Value;
+                mon.viewDebuging = setValue;
                 i++;
             }
         }
-
+        */
         internal void ToggleMobsDebugging(List<BaseMonster> mon)
         {
             for (int i = 0; i < mon.Count; i++)
@@ -119,68 +75,55 @@ namespace SensorsAndSuch.Mobs
         //ScreenPos: the top left of the box in physics coordinates
         internal List<BaseMonster> GetMobsInBox(Vector2 topLeft, float width, float height)
         {
-            int i = 0;
             List<BaseMonster> ret = new List<BaseMonster>();
-            while (i < MaxMonsters && Monsters[i] != null)
+            for(int i = 0; i < Genuses.Length; i++)
             {
-                Vector2 pos = Monsters[i].GetPosition() - topLeft;
-                if (pos.X >= 0 && pos.Y >= 0 && pos.X < width && pos.Y < height)
+                Genuses[i].GetMon(ret, mon =>
                 {
-                    ret.Add(Monsters[i]);
-                }
-                i++;
+                    Vector2 pos = mon.GetPosition() - topLeft;
+                    return (pos.X >= 0 && pos.Y >= 0 && pos.X < width && pos.Y < height);
+                });
             }
             return ret;
         }
 
         #endregion
 
-        public bool KillMonster(int i)
-        {
-            if (Monsters[i] == null)
-                return false;
-            Monsters[i].Kill();
-            Monsters[i] = null;
-            while (i + 1 < MaxMonsters && Monsters[i + 1] != null)
-            {
-                Monsters[i] = Monsters[i + 1];
-                Monsters[i].id = i;
-
-                i++;
-            }
-            Monsters[i] = null;
-            if (i >= MaxMonsters) return false;
-            return true;
-        }
-
         public void Draw(SpriteBatch batch) {
-            int i = 0;
-            while (i < MaxMonsters && Monsters[i] != null)
+            for (int i = 0; i < Genuses.Length; i++)
             {
-                if ((Globals.player.GetPosition() - Monsters[i].GetPosition()).LengthSquared() < (Globals.player.range - .3) * (Globals.player.range - .3))
-                    Monsters[i].Draw(batch);
-                i++;
+                Genuses[i].Draw(batch);
             }
 
-            if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+            if (Globals.screen.currentState == Screens.PlayingScreen.WorldState.Ghost)
             {
                 Reaper.Draw(batch);
             }
 
             info.Draw(batch);
-            Count = i - 1;
         }
 
         //All mobs take a turn
-        public void UpdateMobs(int t = 0)
+        public void UpdateMobs(int tick)
         {
-            int i = mobGroups * t; 
-            while (Globals.GamplayScreen.currentState != Screens.Gameplay.ScreenState.Ghost &&i < MaxMonsters && i < mobGroups*(t+1) && Monsters[i] != null)
+
+            if (Globals.screen.currentState != Screens.PlayingScreen.WorldState.Ghost)
             {
-                Monsters[i].TakeTurn();
-                i++;
+
+                Genuses[tick% Genuses.Length].TakeTurn();
+                for (int i = 0; i < Genuses.Length; i++)
+                {
+                    if (Genuses[i].ShouldUpdate(tick))
+                    {
+                        Genuses[i].UpdateGeneration();
+                        if (Globals.Debugging)
+                        {
+                            Genuses[i].WarpCreatures();
+                        }
+                    }
+                }
             }
-            if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+            if (Globals.screen.currentState == Screens.PlayingScreen.WorldState.Ghost)
             {
                 Reaper.Active = true;
                 Reaper.TakeTurn();
@@ -193,13 +136,16 @@ namespace SensorsAndSuch.Mobs
             List<BaseMonster> monEffected = new List<BaseMonster>();
 
             //Get List of creatures to effect
-            while (i < MaxMonsters && Monsters[i] != null)
+            /*
+            foreach (KeyValuePair<int, BaseMonster> keyVal in monsters)
             {
-                Vector2 monPos = Monsters[i].GetPosition();
+                BaseMonster mon = keyVal.Value;
+                
+                Vector2 monPos = mon.GetPosition();
                 if ((monPos - Globals.map.PhysicsFromScreen(input.CurrentMouseState.X, input.CurrentMouseState.Y)).Length() < .2)
                 {
-                    Monsters[i].adjColor = Color.Black;
-                    monEffected.Add(Monsters[i]);
+                    mon.adjColor = Color.Black;
+                    monEffected.Add(mon);
                 }
                 i++;
             }
@@ -219,17 +165,16 @@ namespace SensorsAndSuch.Mobs
                     monEffected[i].SetRandPos();
                 }
             }
+             * */
         }
 
         //Safely Warp all creatures
         internal void WarpCreatures(int tick)
         {
-            int i = 0;
 
-            while (i < MaxMonsters && Monsters[i] != null)
+            for (int i = 0; i < Genuses.Length; i++)
             {
-                Monsters[i].SetRandPosSafe(tick);
-                i++;
+                Genuses[i].WarpCreatures();
             }
         }
 
@@ -240,6 +185,54 @@ namespace SensorsAndSuch.Mobs
             Reaper.SetVelZero();
             if (Globals.player.range >= 100)
                 Reaper.Afraid = true;
+        }
+
+        internal void InilitilizeGenuses()
+        {
+            #region Rabbits
+
+            Genuses[0] = new GenusManager<NEATBadGuy>(500, rabbittPopAmount, Killer.brainInputs, Killer.brainOutputs, genome => new Killer(genome));
+            Genuses[0].Ininitilize();
+            #endregion
+
+            #region Killers
+            Genuses[1] = new GenusManager<NEATBadGuy>(1000, rabbittPopAmount, Killer.brainInputs, Killer.brainOutputs, genome => new Killer(genome));
+            Genuses[1].Ininitilize();
+            #endregion
+        }
+
+        internal void UpdateGeneration(int genusToUpdate)
+        {
+            Genuses[genusToUpdate].UpdateGeneration();
+        }
+
+        public bool GetMonster(int bodyId, ref BaseMonster mon)
+        {
+            if (Globals.player.id == bodyId)
+            {
+                mon = Globals.player;
+                return true;
+            }
+            for (int i = 0; i < Genuses.Length; i++)
+            {
+                if (Genuses[i].GetMon(bodyId, ref mon))
+                    return true;
+            }
+            return false;
+        }
+
+        internal bool ContainsKey(int bodyId)
+        {
+            if (Globals.player != null && Globals.player.id == bodyId)
+            {
+                return true;
+            }
+            for (int i = 0; i < Genuses.Length; i++)
+            {
+                if (Genuses[i] != null && Genuses[i].ContainsKey(bodyId))
+                    return true;
+            }
+            return false;
         }
     }
 }

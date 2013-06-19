@@ -14,29 +14,33 @@ using FarseerPhysics.Dynamics;
 using FarseerPhysics.Factories;
 using FarseerPhysics.SamplesFramework;
 using FarseerPhysics.Dynamics.Contacts;
-namespace SensorsAndSuch.Mobs
+using SensorsAndSuch.Extensions;
+
+namespace SensorsAndSuch.Mobs.Sensors
 {
-    public class AgentDataSensor
+    public class AgentDataSensor: SensorBase
     {
         #region Datafields
 
+        public float shortestDist;
         private Body slices;
-        private static float slicesRadius = 1.5f;
-        private Body attachedTo;
+        private static float slicesRadius = 2f;
+        private Body attachedToBody;
+        private BaseMonster mon;
         private Color color = Color.LightGray;
         private FarseerPhysics.SamplesFramework.Sprite sprite;
         private List<Fixture> collided;
         private Texture2D texture { get; set; }
         public int count { get { return collided.Count; } }
 
-        public static int HighestNumbAdj = 1;
-        public static int ValuesPerAdj = 4;
-        public static int TotalRetVales = ValuesPerAdj * HighestNumbAdj;
+        public static int highestNumbAdj = 2;
+        public static int valuesPerAdj = 5;
+        public static int TotalRetVales = valuesPerAdj * highestNumbAdj;
 
         public static int NumSlices = 6; // NOTE: This should be pulled out into a config file so brain inputs can be dymically affected by this number changing.
 
         #endregion
-        public AgentDataSensor(Body attached, Color colorIn)
+        public AgentDataSensor(BaseMonster mon, Body attached, Color colorIn)
         {
             texture = Globals.content.Load<Texture2D>("Sensors/Wisker");
 
@@ -49,13 +53,15 @@ namespace SensorsAndSuch.Mobs
             slices.FixtureList[0].OnSeparation += SeparationHandler;
             collided = new List<Fixture>();
 
-            attachedTo = attached;
+            attachedToBody = attached;
+            this.mon = mon;
             color = colorIn;
         }
 
         public bool CollisionHandler(Fixture fixtureA, Fixture fixtureB, Contact contact)
         {
-            if (!collided.Contains(fixtureB) && !fixtureB.Body.Equals(attachedTo))
+            BaseMonster mon = null;
+            if (!collided.Contains(fixtureB) && !fixtureB.Body.Equals(attachedToBody) && Globals.Mobs.GetMonster(fixtureB.Body.BodyId, ref mon))
                 collided.Add(fixtureB);
             return true;
         }
@@ -69,6 +75,7 @@ namespace SensorsAndSuch.Mobs
         {
             collided.Clear();
         }
+
         public void CheckCollisions()
         {
             int max = collided.Count;
@@ -84,56 +91,94 @@ namespace SensorsAndSuch.Mobs
             }
 
         }
-        private float[] GetCloseAgents(Vector2 heading)
+
+        internal override float[] GetReturnValues()
         {
+            
             float[] ret = new float[TotalRetVales];
             float[] quadrantActivation = new float[NumSlices];
-            heading.Normalize();
             CheckCollisions();
-            #region Commented (closest in circle stuff)
+
+
+            //Set initial values
+            for (int i = 0; i < TotalRetVales; i++)
+            {
+                ret[i] = 0;
+            }
+            return CreatureDataCollection(ret);
+
+        }
+
+        private float[] CreatureDataCollection(float[] data)
+        {
+            #region Set up data
             SortedDictionary<float, Fixture> closeDict = new SortedDictionary<float, Fixture>();
-            //Figure out what fixtures are closest
+            Vector2 heading = mon.Dir;
+            heading.Normalize();
+            shortestDist = 1;
+            #endregion
+
+            #region Figure out what fixtures are closest
             foreach (Fixture col in collided)
             {
                 Vector2 agentVector = col.Body.Position - slices.Position;
-                float distance = agentVector.Length();
+                float distance = agentVector.Length() / slicesRadius;
+                if (distance < shortestDist) shortestDist = distance;
                 while (closeDict.ContainsKey(distance))
-                    distance += .001f;
+                    distance += .00001f;
                 closeDict.Add(distance, col);
             }
-            int i = 0;
+            #endregion
 
-            //Add data to ret for each fixture, with the closest fixtures comming first
-            //Limit of fixtures is in static vairable TotalRetVales
+
+            #region Get @valuesPerAdj Data for the @highestNumbAdj characters
+            int i = 0;
             foreach (KeyValuePair<float, Fixture> entry in closeDict)
             {
-                Vector2 agentVector = entry.Value.Body.Position - slices.Position;
-                float distance = agentVector.Length();
-                agentVector.Normalize();
-                float angle = (float)(Math.Acos(Vector2.Dot(heading, agentVector)) * (180 / Math.PI));
-                if (float.IsNaN(angle))
-                    angle = 0;
-                ret[i] = 1;
-                ret[i + 1] = angle / 360;
-                ret[i + 2] = entry.Key;
-                ret[i + 3] = entry.Value.Body.Rotation/(2*(float) Math.PI);
-                i = i + ValuesPerAdj;
-                if (i >= TotalRetVales) 
-                    break;
-            }
+                //Only use data that the attatched monster can see
+                if (.9f > Globals.map.isPathFree(mon.currentGridPos, Globals.map.GridFromPhysics(entry.Value.Body.Position)))
+                {
+                    BaseMonster seenMon = null;
+                    Globals.Mobs.GetMonster(entry.Value.Body.BodyId, ref seenMon);
 
-            //if there are less then @HighestNumbAdj fixtures fill in default data for remaing parts
-            for (; i < TotalRetVales; i = i + ValuesPerAdj)
-            {
-                ret[i] = 1;
-                ret[i + 1] = 0;
-                ret[i + 2] = 0;
-                ret[i + 3] = 0;
+                    Vector2 agentVector = entry.Value.Body.Position - slices.Position;
+                    float distance = agentVector.Length();
+                    Vector2 OtherHeading = entry.Value.Body.Rotation.GetVecFromAng();
+                    agentVector.Normalize();
+                    float angle = (float)(Math.Acos(Vector2.Dot(heading, agentVector)) * (180 / Math.PI));
+                    float angle2 = (float)(Math.Acos(Vector2.Dot(OtherHeading, agentVector)) * (180 / Math.PI));
+
+                    if (float.IsNaN(angle))
+                        angle = 0;
+                    data[i++] = 1;
+
+                    //ret[i++] = agentVector.X;
+                    //ret[i++] = agentVector.Y;
+                    data[i++] = 1 - entry.Key;
+                    //ret[i++] = OtherHeading.X;
+                    //ret[i++] = OtherHeading.Y;
+
+                    data[i++] = (angle % 360 / 360);
+                    data[i++] = (angle2 % 360 / 360);
+                    data[i++] = seenMon.monRatio;
+                    if (i >= TotalRetVales)
+                        break;
+                }
             }
-            return ret;
             #endregion
-            /*
-            #region Tweeked Pie Slice Logic
+
+            return data;
+        }
+
+        //TODO: fix this: QuadrentVersion
+        private float[] QuadrentVersion()
+        {
+            #region Set up data
+            Vector2 heading = mon.Dir;
+            heading.Normalize();
+            #endregion
+
+            float[] quadrantActivation = new float[4];
             foreach (Fixture col in collided)
             {
                 Vector2 agentVector = col.Body.Position - slices.Position;
@@ -166,20 +211,12 @@ namespace SensorsAndSuch.Mobs
                 }
             }
             return quadrantActivation;
-            #endregion
-            */
         }
-        
-        public float[] Update(Vector2 heading)
+
+        public override void Update()
         {            
-            slices.Position = attachedTo.Position;
-            slices.Rotation = attachedTo.Rotation;
-            //float[] nearAgents = GetCloseAgents(heading);
-            //for (int i = 0; i < nearAgents.Length; i++)
-            //    ret[startIndex + i] = nearAgents[i];
-            //return nearAgents;
-            float[] proximalAgents = GetCloseAgents(heading);
-            return proximalAgents;
+            slices.Position = attachedToBody.Position;
+            slices.Rotation = attachedToBody.Rotation;
         }
 
         internal void ClearCollisions()
@@ -192,7 +229,7 @@ namespace SensorsAndSuch.Mobs
             slices.Dispose();
         }
 
-        public void Draw(SpriteBatch batch)
+        public override void Draw(SpriteBatch batch)
         {
             batch.Draw(sprite.Texture, 
                             Globals.map.ScreenFromPhysics(slices.Position), null,

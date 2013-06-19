@@ -12,7 +12,7 @@ using FarseerPhysics.Dynamics;
 
 namespace SensorsAndSuch.Sprites
 {
-    public class Player : BadGuy
+    public class Player : Killer
     {
         public enum MoveOpt
         {
@@ -40,7 +40,7 @@ namespace SensorsAndSuch.Sprites
         protected int seeingRange = 2;
         public String BonusText = "Get 2 kills for a larger vision!!";
         public Player(ContentManager content, Vector2 GridPos)
-            : base(GridPos, Color.Gold, 0, 0, .15f, parent: null, Genome: null)
+            : base(GridPos, Color.Gold, .15f, Genome: null)
         {
             this.color = Color.Gold;
             //PieSliceSensor = new PieSlice(circle, new Color(10, 10, 10, 90), 2f);
@@ -62,19 +62,19 @@ namespace SensorsAndSuch.Sprites
             {
                 health = MaxHealth;
                 lives--;
-                if (Globals.Debugging && Globals.GamplayScreen.currentState == Gameplay.ScreenState.MapEditing)
-                    SetRandPosSafe(Globals.tick);
+                if (Globals.Debugging)
+                    SetRandPosSafe();
                 else
                 {
-                    //color = Color.Black;
+                    color = Color.Gold;
                     color.A = 10;
                     weapon.EndUse();
                     dead = true;
-                    shape.LinearDamping = 1f;
-                    shape.CollisionCategories = Category.Cat3;
-                    shape.CollidesWith = Category.Cat3;
+                    Body.LinearDamping = 1f;
+                    Body.CollisionCategories = Category.Cat3;
+                    Body.CollidesWith = Category.Cat3;
                     timeAtDeath = Globals.GameTime.TotalGameTime.TotalSeconds;
-                    Globals.GamplayScreen.SetDied();
+                    Globals.screen.SetDied();
                 }
             }
 
@@ -82,45 +82,51 @@ namespace SensorsAndSuch.Sprites
             {
                 if (timeAtDeath + timeSpanDead < Globals.GameTime.TotalGameTime.TotalSeconds)
                 {
-                    if(Globals.map.isFree(Globals.map.GridFromPhysics(shape.Position)))
+                    if(Globals.map.isFree(Globals.map.GridFromPhysics(Body.Position)))
                     {
                         color = Color.Gold;
                         color.A = 255;
                         weapon.StartUse();
                         dead = false;
-                        shape.LinearDamping = 3f;
-                        shape.CollidesWith = Category.Cat1;
-                        shape.CollisionCategories = Category.Cat1;
-                        Globals.GamplayScreen.SetLiving();
+                        Body.LinearDamping = 3f;
+                        Body.CollidesWith = Category.Cat1;
+                        Body.CollisionCategories = Category.Cat1;
+                        Globals.screen.SetLiving();
                     }
 
                 }
+            }
+
+            for (int i = 0; i < Sensors.Length; i++)
+            {
+                Sensors[i].Update();
+                Sensors[i].GetReturnValues();
             }
 
             switch (Opt)
             {
                 case MoveOpt.LEFT:
                     {
-                        shape.ApplyForce(new Vector2(1, 0) * speed, shape.Position);
-                        shape.Rotation = 0;//MathHelper.Pi;
+                        Body.ApplyForce(new Vector2(1, 0) * speed, Body.Position);
+                        Body.Rotation = 0;//MathHelper.Pi;
                         break;
                     }
                 case MoveOpt.RIGHT:
                     {
-                        shape.ApplyForce(new Vector2(-1, 0) * speed, shape.Position);
-                        shape.Rotation = MathHelper.Pi;
+                        Body.ApplyForce(new Vector2(-1, 0) * speed, Body.Position);
+                        Body.Rotation = MathHelper.Pi;
                         break;
                     }
                 case MoveOpt.UP:
                     {
-                        shape.ApplyForce(new Vector2(0, -1) * speed, shape.Position);
-                        shape.Rotation = MathHelper.Pi * 3f / 2f;
+                        Body.ApplyForce(new Vector2(0, -1) * speed, Body.Position);
+                        Body.Rotation = MathHelper.Pi * 3f / 2f;
                         break;
                     }
                 case MoveOpt.DOWN:
                     {
-                        shape.ApplyForce(new Vector2(0, 1) * speed, shape.Position);
-                        shape.Rotation = MathHelper.Pi / 2f;
+                        Body.ApplyForce(new Vector2(0, 1) * speed, Body.Position);
+                        Body.Rotation = MathHelper.Pi / 2f;
                         break;
                     }
                 case MoveOpt.USEITEM:
@@ -136,9 +142,9 @@ namespace SensorsAndSuch.Sprites
                 ApplyBonuses(kills);
             }
             // Update player position and heading.
-            if (!(shape.Position - oldPos).HasNan())
+            if (!(Body.Position - oldPos).HasNan())
             {
-                this.Dir = (shape.Position - oldPos);
+                this.Dir = (Body.Position - oldPos);
                 this.Dir.Normalize();
 
             }
@@ -147,19 +153,16 @@ namespace SensorsAndSuch.Sprites
             {
                 this.Dir = new Vector2(0, 0);
             }
-            GridPos = Globals.map.GridFromPhysics(shape.Position);
-            this.CurrentGridPos = shape.Position;
             // Update HUD for position/heading and each sensor type.
             // Update player info.
             //HUD.UpdatePlayer(string.Format("Player Position: X={0:F2} Y={1:F2}; Heading: X={2:F2} Y={3:F2}", this.CurrentGridPos.X, this.CurrentGridPos.Y, this.Dir.X, this.Dir.Y));
 
             //HUD.UpdatePieSlices(pieSliceInfo);
-            oldPos = shape.Position;
+            oldPos = Body.Position;
         }
-
+/*
         public override void Draw(SpriteBatch batch)
         {
-            weapon.Draw(batch);
             //AdjDataGetter.Draw(batch);
             if (weapon != null) weapon.Draw(batch);
             batch.Draw(Sprite.Texture,
@@ -168,7 +171,7 @@ namespace SensorsAndSuch.Sprites
                                SpriteEffects.None, 0f);
             adjColor = null;
         }
-
+        */
         public void CreatePlayer(int clas, string name)
         {
             Name = name;

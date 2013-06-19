@@ -11,11 +11,12 @@ using SensorsAndSuch.Maps;
 using FarseerPhysics.Dynamics;
 using FarseerPhysics.Factories;
 using FarseerPhysics.SamplesFramework;
-using SensorsAndSuch.Extensions;
 using SensorsAndSuch.Mobs.AI;
 using SensorsAndSuch.Items;
 using SharpNeat.Genomes.Neat;
 using SharpNeat.Phenomes;
+using SensorsAndSuch.Extensions;
+using SensorsAndSuch.Mobs.Sensors;
 
 //Stone monster: can move walls
 //water creature: becomes pools
@@ -25,9 +26,8 @@ using SharpNeat.Phenomes;
 
 namespace SensorsAndSuch.Mobs
 {
-    public class BadGuy : BaseMonster
+    public class Killer : NEATBadGuy
     {
-        protected FarseerPhysics.SamplesFramework.Sprite Sprite;
 
         #region properties For NN
         protected static int wiskerNumber = 4;
@@ -37,68 +37,71 @@ namespace SensorsAndSuch.Mobs
         float lengths = 3;
         public Vector2 StartPos;
         public double energy = 10;
+        float MurderBonus = 0;
+        float AdjCreatures = 0;
         #endregion
-
 
         int lastHealth = 0;
         internal static int TicksPerLife;
-        int ticksAtLastWarp = 0;
         public bool FirstGen = false;
         int Birth = 0;
+        int Deaths = 0;
         float ScoreDist = 0;
-        float MurderBonus = 0;
         static int LifeSpan = 20;
-
-        public static int BrainInputs { get { return wiskerNumber + AgentDataSensor.TotalRetVales + 2/* For GPS*/ + 0/* For Energy level*/; } }
-
+        static int MaxEnergy = 100;
+        public static int brainInputs { get { return wiskerNumber + AgentDataSensor.TotalRetVales + 2/* For GPS*/; } }
+        public static int brainOutputs { get { return 3; } }
+        public override int BrainInputs() { return brainInputs; }
+        public override int BrainOutputs() { return brainOutputs; }
+        public override MonTypes monType { get { return MonTypes.Killer; } }
+        protected float radius;
         Text info = new Text(Globals.content.Load<SpriteFont>("Fonts/buttonFont"), displayText: "", displayPosition: new Vector2(0, 0), displayColor: Color.White,
              outlineColor: Color.Black, isTextOutlined: true, alignment: SensorsAndSuch.Texts.Text.Alignment.None, displayArea: Rectangle.Empty);
         protected BaseWeapon weapon;
 
         #region Constructors
-        public BadGuy(Vector2 GridPos, BaseMonster parent, int id, int age = 0)
-            : this(GridPos, Color.AntiqueWhite, id, age, circleRadius: .15f, parent: parent, Genome: null)
-        {
-        }
 
-        public BadGuy(Vector2 GridPos, int id, NeatGenome Genome, int age = 0)
-            : this(GridPos, Color.White, id, age, circleRadius: .15f, parent: null, Genome: Genome)
-        {
-        }
+        public Killer(NeatGenome Genome = null)
+            : this(Globals.map.GetRandomFreePos(), Genome)
+        { }
 
+        public Killer(Vector2 GridPos, NeatGenome Genome)
+            : this(GridPos, Color.White, circleRadius: .15f, Genome: Genome)
+        { }
 
-        public BadGuy(Vector2 GridPos, Color color, int id, int age, float circleRadius, BaseMonster parent, NeatGenome Genome)
-            : base(null, GridPos, "Snake" + id, GetRandDir(), 15, 0, id, Genome)
+        protected Killer(Vector2 GridPos, Color color, float circleRadius, NeatGenome Genome)
+            : base(GridPos, GetRandDir(), Genome)
         {
-            shape = BodyFactory.CreateCircle(Globals.World, radius: circleRadius, density: 1f);
-            
+            Body = BodyFactory.CreateCircle(Globals.World, radius: circleRadius, density: 1f);
+           
             Sprite = new FarseerPhysics.SamplesFramework.Sprite(Globals.content.Load<Texture2D>("Mobs/BadGuy"));
-
+            radius = circleRadius;
             Score = 0;
-            shape.LinearDamping = 3f;
-            shape.AngularDamping = 3f;
-            ticksAtLastWarp = 0;
-            shape.BodyType = BodyType.Dynamic;
+            Body.LinearDamping = 3f;
+            Body.AngularDamping = 3f;
+            Body.BodyType = BodyType.Dynamic;
             Vector2 pos = GridPos;
-            shape.Position = new Vector2(pos.X * TileWidth, pos.Y * TileHeight);
-            shape.Rotation = Globals.rand.Next(360);
-            shape.Friction = 0.0f;
-            shape.CollidesWith = Category.Cat1;
-            Wiskers[0] = new Wisker(attatched: shape, offSet: 0, WiskerLength: 2f);
-            Wiskers[1] = new Wisker(attatched: shape, offSet: (float)Math.PI / 2.4f, WiskerLength: 4f);
-            Wiskers[2] = new Wisker(attatched: shape, offSet: (float)Math.PI / -2.4f, WiskerLength: 4f);
-            //Wiskers[3] = new Wisker(attatched: shape, offSet: (float)Math.PI / 4f, WiskerLength: 4f);
+            Body.Position = new Vector2(pos.X * TileWidth, pos.Y * TileHeight);
+            Body.Rotation = Globals.rand.Next(360);
+            Body.Friction = 0.0f;
+            Body.CollidesWith = Category.Cat1;
+            Sensors = new SensorBase[5];
+            speed = .8f;
+            int i = 0;
+            Sensors[i++] = new Wisker(attatched: Body, offSet: 0, wiskerLengthGrid: 4f);
+            Sensors[i++] = new Wisker(attatched: Body, offSet: (float)Math.PI / 2.4f, wiskerLengthGrid: 4f);
+            Sensors[i++] = new Wisker(attatched: Body, offSet: (float)Math.PI / -2.4f, wiskerLengthGrid: 4f);
+            Sensors[i++] = new Wisker(attatched: Body, offSet: (float)Math.PI, wiskerLengthGrid: 4f);
             //Wiskers[4] = new Wisker(attatched: shape, offSet: (float)Math.PI / -4f, WiskerLength: 4f);
-            Wiskers[3] = new Wisker(attatched: shape, offSet: (float)Math.PI, WiskerLength: 2f);
+            //Wiskers[3] = new Wisker(attatched: shape, offSet: (float)Math.PI, WiskerLength: 2f);
 
-            AdjDataSensor = new AgentDataSensor(shape, new Color(255, 100, 50, 100));
+            AdjDataSensor = new AgentDataSensor(this, Body, new Color(255, 100, 50, 100));
+            Sensors[i++] = AdjDataSensor;
 
-
-            shape.CollisionCategories = Category.Cat1;
-            shape.CollidesWith = Category.Cat1;
+            Body.CollisionCategories = Category.Cat1;
+            Body.CollidesWith = Category.Cat1;
             
             ResetNNEvaluators();
-            AddMonster(this, shape.BodyId);
         } 
 
         #endregion
@@ -109,22 +112,23 @@ namespace SensorsAndSuch.Mobs
         {
             double ScoreLen = lengths / countWisLength;
             double ScoreLenPercent = 100 * ScoreLen;
-            ScoreDist += (StartPos - shape.Position).Length();
+            ScoreDist += (StartPos - Body.Position).Length();
             if (ScoreDist < 3)
-                MurderBonus = 0;
-            double Score = Math.Pow(20*ScoreDist * ScoreLen + 100*MurderBonus * MurderBonus * MurderBonus, 1/5);
-
+               MurderBonus = 0;
+            //double Score = Math.Pow(Math.Max(Math.Max(50 * ScoreDist * ScoreLen , 100 * MurderBonus * MurderBonus * MurderBonus ), Deaths * -100 + AdjCreatures * 5), 1 / 3);
+            double Score = Math.Pow(150 * ScoreDist * ScoreLen * MurderBonus + 100 * MurderBonus * MurderBonus * MurderBonus - Deaths * 100 + AdjCreatures / 4, 1.0 / 2.5); // + AdjCreatures
+            if (double.IsNaN(Score) || double.IsInfinity(Score))
+                Score = 0;
             Genome.EvaluationInfo.SetFitness(Math.Max(0, Score));
             Genome.EvaluationInfo.AuxFitnessArr = null;
             ResetNNEvaluators();//
         }
 
-        public void ResetNNEvaluators()
+        public override void ResetNNEvaluators()
         {
-            //shape.Rotation = Globals.rand.Next(360);
-
-            StartPos = shape.Position;
-            ticksAtLastWarp = 0; 
+            AdjCreatures = 0;
+            Deaths = 0;
+            StartPos = Body.Position;
             ScoreDist = 0;
             lengths = 3;
             energy = 10;
@@ -134,14 +138,15 @@ namespace SensorsAndSuch.Mobs
         #endregion
 
         //Resets the agents position randomly, without effecting the score
-        public override void SetRandPosSafe(int tick)
+        public override void SetRandPosSafe()
         {
-            ScoreDist += (StartPos - shape.Position).Length();
+            ScoreDist += (StartPos - Body.Position).Length();
 
-            shape.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos(notNearPlayer: true));
-            shape.LinearVelocity = new Vector2(0, 0);
-            weapon.updatePosition();
-            StartPos = shape.Position;
+            Body.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos(notNearPlayer: true));
+            Body.LinearVelocity = new Vector2(0, 0);
+            if (weapon != null) 
+                weapon.updatePosition();
+            StartPos = Body.Position;
         }
 
         public override void TakeTurn()
@@ -155,11 +160,11 @@ namespace SensorsAndSuch.Mobs
                 weapon = new Sword(this, Item.Materials.Iron);
                 weapon.StartUse();
             }
-
+            AdjCreatures += AdjDataSensor.count;
             if (weapon != null)
             {
                 int numKilled = weapon.Use();
-                if (numKilled != 0 && (shape.Position- StartPos).LengthSquared() < 4)
+                if (numKilled != 0 && (Body.Position- StartPos).LengthSquared() < 4)
                 {
                     //MurderBonus *= MurderBonus;
                     MurderBonus += .2f * numKilled;
@@ -172,7 +177,8 @@ namespace SensorsAndSuch.Mobs
 
             if (health <= 0)
             {
-                SetRandPosSafe(Globals.tick);
+                Deaths++;
+                SetRandPosSafe();
                 health = MaxHealth;
             }
             if (health != lastHealth)
@@ -180,31 +186,28 @@ namespace SensorsAndSuch.Mobs
                 adjColor = Color.Red;
             }
             lastHealth = health;
-            //Deactivated because Age isn't being used
-            if (false && Globals.GamesStart && Age >= 1.0f)
-            {
-                MakeChildren(1);
-                Globals.Mobs.KillMonster(id);
-            }
 
+            for (int i = 0; i < Sensors.Length; i++)
+            {
+                Sensors[i].Update();
+            }
             #region Brain calculations
             //Set up inputs
             Brain.ResetState();
             ISignalArray BrainIn = Brain.InputSignalArray;
             int brainInIndex = 0;
-            for (brainInIndex = 0; brainInIndex  < Wiskers.Length; brainInIndex ++) {
-                BrainIn[brainInIndex] = Wiskers[brainInIndex].Update();
-            }
-            float[] proximalAgents = AdjDataSensor.Update(shape.Rotation.GetVecFromAng());
-            foreach (float proxAgent in proximalAgents)
-            {
-                BrainIn[brainInIndex] = proxAgent;
-                brainInIndex++;
-            }
-            BrainIn[brainInIndex++] = shape.Position.X / RandomMap.mapWidthPhysics;
 
-            BrainIn[brainInIndex++] = shape.Position.Y / RandomMap.mapHeightPhysics;
-            //BrainIn[brainInIndex++] = energy / 10;
+            for (int i = 0; i < Sensors.Length; i++)
+            {
+                float[] sensorRets = Sensors[i].GetReturnValues();
+                for (int j = 0; j < sensorRets.Length; j++)
+                    BrainIn[brainInIndex++] = sensorRets[j];
+            }
+
+            BrainIn[brainInIndex++] = Body.Position.X / RandomMap.mapWidthPhysics;
+
+            BrainIn[brainInIndex++] = Body.Position.Y / RandomMap.mapHeightPhysics;
+            //BrainIn[brainInIndex++] = energy / MaxEnergy;
             //AdjDataGetter.Update(shape.Rotation.GetVecFromAng(), Wiskers.Length, BrainIn);
             if (BrainIn[0] < 0 || BrainIn[1] < 0)
                 throw new Exception("Error in BrainInVAl");
@@ -230,42 +233,42 @@ namespace SensorsAndSuch.Mobs
             lengths += (float)(BrainIn[0] * BrainIn[0]);
 
             //Change Agent's Physics
-            Vector2 Dir = shape.Rotation.GetVecFromAng();
+            Vector2 Dir = Body.Rotation.GetVecFromAng();
             if (energy > 0)
             {
-                if (energy >= BrainOut[1])
-                {
 
-                    energy -= BrainOut[1];
+                BrainOut[0] = BrainOut[0] * 2 - 1;
+                BrainOut[0] *= BrainOut[0] * BrainOut[0];
+
+                BrainOut[2] = BrainOut[2] * 2 - 1;
                     BrainOut[1] = BrainOut[1] * 2 - 1;
-                    shape.ApplyForce(Dir * (float)BrainOut[1] * speed, shape.Position);
-                }
-                if (energy >= BrainOut[0])
+                    if (energy >= Math.Abs(BrainOut[1]))
                 {
-                    energy -= BrainOut[0];
-                    BrainOut[0] *= BrainOut[0];
-                    BrainOut[0] = BrainOut[0] * 2 - 1;
-                    shape.Rotation += (float)(BrainOut[0] * Math.PI / 2f / 10);
+
+                    energy -= Math.Abs(BrainOut[1]);
+                    Body.ApplyForce(Dir * (float)BrainOut[1] * speed, Body.Position);
+                }
+                if (energy >= Math.Abs(BrainOut[0]))
+                {
+                    energy -= Math.Abs(BrainOut[0]);
+                    Body.Rotation += (float)(BrainOut[0] * Math.PI / 2f / 10);
                 }
 
-                if (energy >= BrainOut[2])
+                if (energy >= Math.Abs(BrainOut[2]))
                 {
-                    energy -= BrainOut[2];
-                    BrainOut[2] = BrainOut[2] * 2 - 1;
-                    shape.ApplyForce(Dir.Flip() * (float)BrainOut[2], shape.Position);
+                    energy -= Math.Abs(BrainOut[2]);
+                    Body.ApplyForce(Dir.Flip() * (float)BrainOut[2], Body.Position);
                 }
                 if (energy < 1)
                 {
-                    //energy = -10;
+                    energy = -MaxEnergy;
                 }
             }
-            energy = Math.Min(energy + 1.5, 10);
-
-        }
-
-        //removes this agent if its behavior is clearily bad and replaces it with a fresh creature.
-        protected void IdiotThreshold()
-        {
+            else if (energy + 1.5 >= 0)
+            {
+                energy = MaxEnergy / 2;
+            }
+            energy = 20;// Math.Min(energy + 20, MaxEnergy);
         }
 
         //gets the age of the agent based on a range from 0 - 1
@@ -279,27 +282,28 @@ namespace SensorsAndSuch.Mobs
         {
             double ScoreLen = lengths / countWisLength;
             double ScoreLenPercent = 100 * ScoreLen;
-            double ScoreDistT = ScoreDist + (StartPos - shape.Position).Length();
+            double ScoreDistT = ScoreDist + (StartPos - Body.Position).Length();
             double Score = ScoreLen * ScoreLen * 50 * ScoreDistT * ScoreDistT + MurderBonus;
             return String.Format("Speies({0:D})\nScoreLen({1:F2})\nScoreDist({2:F2})\nMurderBonus({3:F2})\nScore({4:F2})", Genome.SpecieIdx, ScoreLenPercent, ScoreDistT, MurderBonus, Score);
         }
 
         public override void Draw(SpriteBatch batch)
-        {
+        {   
+
             if (viewDebuging)
-            {                
-                for (int i = 0; i < Wiskers.Length; i++)
-                    Wiskers[i].Draw(batch);
+            {                    for (int i = 0; i < Sensors.Length; i++)
+                    Sensors[i].Draw(batch);      
+
                 info.ChangeText(GetInfo());
-                info.Position = Globals.map.ScreenFromPhysics(shape.Position);
+                info.Position = Globals.map.ScreenFromPhysics(Body.Position);
                 info.Draw(batch);
                 AdjDataSensor.Draw(batch);
             }
             //AdjDataGetter.Draw(batch);
             if (weapon != null) weapon.Draw(batch);
             batch.Draw(Sprite.Texture,
-                               Globals.map.ScreenFromPhysics(shape.Position), null,
-                               Globals.map.globalEffect(adjColor == null ? color : (Color)adjColor), shape.Rotation, Sprite.Origin, Globals.map.globalScale * .75f,
+                               Globals.map.ScreenFromPhysics(Body.Position), null,
+                               Globals.map.globalEffect(adjColor == null ? color : (Color)adjColor), Body.Rotation, Sprite.Origin, Globals.map.globalScale * .75f * radius/.15f,
                                SpriteEffects.None, 0f);
             adjColor = null;
         }
@@ -308,7 +312,7 @@ namespace SensorsAndSuch.Mobs
         public override void Kill()
         {
             base.Delete();
-            shape.Dispose();
+            Body.Dispose();
             AdjDataSensor.Kill();
             if (weapon != null)
                 weapon.kill();

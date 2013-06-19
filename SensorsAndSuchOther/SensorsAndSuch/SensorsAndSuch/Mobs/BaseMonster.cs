@@ -11,6 +11,7 @@ using SensorsAndSuch.Mobs.AI;
 using FarseerPhysics.Dynamics;
 using SharpNeat.Genomes.Neat;
 using SharpNeat.Phenomes;
+using SensorsAndSuch.Mobs.Sensors;
 
 
 namespace SensorsAndSuch.Mobs
@@ -19,10 +20,19 @@ namespace SensorsAndSuch.Mobs
     {
         public enum MonTypes
         {
-            Normal, Static, Player
+            Reaper = 0, 
+            Player = 1, 
+            Killer = 1, 
+            Rabbit = 2, 
+            Max = 2
         }
-        
+
+        public abstract MonTypes monType { get; }
+        public float monRatio { get { return (float)((float)monType / (float)MonTypes.Max); } }
+        protected FarseerPhysics.SamplesFramework.Sprite Sprite;
+
         #region Set as live
+        protected int deaths;
         protected int Level = 1;
         protected int exp = 0;
         public int health = 100;
@@ -33,7 +43,7 @@ namespace SensorsAndSuch.Mobs
         public int MaxHealth = 100;
         protected float speed = 1.2f;
         public Vector2 Dir;
-        protected Vector2 CurrentGridPos;
+        public Vector2 currentGridPos{ get{ return Globals.map.GridFromPhysics(Body.Position);} }
         #endregion
 
         #region Set At Birth
@@ -41,10 +51,11 @@ namespace SensorsAndSuch.Mobs
         public MonTypes type;
         public MonTypes friendly;
         public bool Male;
-        public int id;
-        internal Body shape;
+        public int id{ get{ return Body.BodyId;} }
+        internal Body Body;
         #endregion
 
+        protected SensorBase[] Sensors;
         public bool viewDebuging = false;
         public abstract void Kill();
         public abstract void TakeTurn();
@@ -57,11 +68,11 @@ namespace SensorsAndSuch.Mobs
         #endregion
 
         #region Methods for NEAT
-        public abstract void ScoreSelf();
 
         internal void ResetGenome(NeatGenome neatGenome)
         {
             this.Genome = neatGenome;
+            if (neatGenome == null) return;
             this.Brain = Globals.NeatExp.GetBlackBoxFromGenome(this.Genome);
             if (Genome != null)
             {
@@ -79,24 +90,17 @@ namespace SensorsAndSuch.Mobs
             }
         }
         #endregion
+        #region Constructors
 
-        public BaseMonster(string tex, Vector2 GridPos, string Name, Vector2 moveDir, int NutVal, int Age, int id, NeatGenome Genome)
-            :base (tex, GridPos)
+        public BaseMonster(Vector2 GridPos, Vector2 moveDir, NeatGenome Genome)
+            :base (null, GridPos)
         {
-            this.Name = Name;
             this.Dir = moveDir;
             this.Age = Age;
-            this.id = id;
             ResetGenome(Genome);
         }
 
-        public virtual void MakeChildren(int numb)
-        {
-            if (Genome == null)
-                return;
-            for (int i = 0; i < numb; i++)
-                Globals.Mobs.AddMonster(BaseMonster.MonTypes.Normal, this, Globals.map.GetRandomFreePos());
-        }
+        #endregion
 
         public virtual string GetInfo()
         {
@@ -107,10 +111,10 @@ namespace SensorsAndSuch.Mobs
 
         public virtual void SetRandPos()
         {
-            shape.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos());
+            Body.Position = Globals.map.PhysicsFromGrid(Globals.map.GetRandomFreePos());
         }
 
-        public abstract void SetRandPosSafe(int tick);
+        public abstract void SetRandPosSafe();
 
         internal void DoDamage(int p)
         {
@@ -120,11 +124,12 @@ namespace SensorsAndSuch.Mobs
         internal Vector2 GetPosition(float projected = 0, bool forceNonZero = false)
         {
             if (forceNonZero && Dir.Length() < .1f)
-                return shape.Position + new Vector2(1, 0) * projected;
-            return shape.Position + Dir * projected;
+                return Body.Position + new Vector2(1, 0) * projected;
+            return Body.Position + Dir * projected;
         }
 
         #region Static Methods/Properties
+        /*
         public static Dictionary<int, BaseMonster> monsters = new Dictionary<int, BaseMonster>();
 
         public static void AddMonster(BaseMonster mon, int BodyID)
@@ -140,7 +145,7 @@ namespace SensorsAndSuch.Mobs
                 return true;
             }
             return false;
-        }
+        }*/
         #endregion
     }
 }

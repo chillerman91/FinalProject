@@ -13,15 +13,18 @@ using FarseerPhysics.Factories;
 using FarseerPhysics.SamplesFramework;
 using SensorsAndSuch.Extensions;
 
-namespace SensorsAndSuch.Mobs
+namespace SensorsAndSuch.Mobs.Sensors
 {
-    public class Wisker
+    public class Wisker : SensorBase
     {
+        public static int totalRetVales;
+
         #region Datafields
 
-        float WiskerR;
+        float wiskerLength;
         Texture2D texture;
         Body attatchedTo;
+        private Vector2 dir;
         Color color;
         Color defaultC = Color.White;
         float OffSet;
@@ -38,17 +41,27 @@ namespace SensorsAndSuch.Mobs
 
         #endregion
 
-        public Wisker(Body attatched, float offSet, float WiskerLength)
+        public Wisker(Body attatched, float offSet, float wiskerLengthGrid)
         {
             texture = Globals.content.Load<Texture2D>("Sensors/Wisker");
             attatchedTo = attatched;
-            WiskerR = WiskerLength / .16f;
+            //WiskerR = WiskerLength / .16f;
+            wiskerLength = wiskerLengthGrid;
             OffSet = offSet;
             color = defaultC;
         }
 
-        public float Update()
+        internal override float[] GetReturnValues()
         {
+            float[] distAsArray = new float[1];
+            distance = Globals.map.isPathFree(Globals.map.GridFromPhysics(attatchedTo.Position), (attatchedTo.Rotation + OffSet).GetVecFromAng(), wiskerLength);
+            distAsArray[0] = distance;
+            return distAsArray;
+        }
+
+        internal float[] RayCast()
+        {
+            float[] distAsArray = new float[1];
             distance = 1;
             Globals.World.RayCast((fixture, point, normal, fraction) =>
             {
@@ -58,17 +71,17 @@ namespace SensorsAndSuch.Mobs
                 }
                 return 1;
             }
-            , attatchedTo.Position, attatchedTo.Position + (attatchedTo.Rotation + OffSet).GetVecFromAng() * WiskerR * .16f);
+            , attatchedTo.Position, attatchedTo.Position + (attatchedTo.Rotation + OffSet).GetVecFromAng() * wiskerLength * .16f);
             int r = (int)(240 * (distance - .3) / .7f) + 10;
-            //color = new Color(255-r, r, 0);
-            return distance;
+            distAsArray[0] = distance;
+            return distAsArray;
         }
 
-        public void Draw(SpriteBatch batch)
+        public override void Draw(SpriteBatch batch)
         {
             batch.Draw(texture,
                Globals.map.ScreenFromPhysics(attatchedTo.Position ), null,
-               color, attatchedTo.Rotation + OffSet, new Vector2(texture.Width / 2, texture.Height / 2), WiskerR * distance*Globals.map.globalScale,
+               color, attatchedTo.Rotation + OffSet, new Vector2(texture.Width / 2, texture.Height / 2), wiskerLength * distance*Globals.map.globalScale,
                SpriteEffects.None, 0f);
         }
     }

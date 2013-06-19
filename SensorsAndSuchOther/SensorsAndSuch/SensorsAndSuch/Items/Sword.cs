@@ -55,12 +55,12 @@ namespace SensorsAndSuch.Items
         public bool CollisionHandler(Fixture fixtureA, Fixture fixtureB, Contact contact)
         {
             BaseMonster mon = null;
-            if (inUse && fixtureB.Body != holder.shape && BaseMonster.GetMonster(fixtureB.Body.BodyId, ref mon))
+            if (inUse && fixtureB.Body != holder.Body && Globals.Mobs.GetMonster(fixtureB.Body.BodyId, ref mon))
             {
                 hitCounter++;
                 if (mon.health <= 0) return false;
                 mon.DoDamage(damage);
-                mon.shape.ApplyLinearImpulse(shape.Rotation.GetVecFromAng()/5f);
+                mon.Body.ApplyLinearImpulse(shape.Rotation.GetVecFromAng()/5f);
                 if (mon.health <= 0)
                 {
                     //mon.MakeChildren(1);
@@ -79,8 +79,8 @@ namespace SensorsAndSuch.Items
 
         internal override void updatePosition()
         {
-            shape.Rotation = holder.shape.Rotation;
-            shape.Position = holder.shape.Position + (shape.Rotation + (float)Math.PI/2f).GetVecFromAng() * -0.0f + shape.Rotation.GetVecFromAng() * .25f;//
+            shape.Rotation = holder.Body.Rotation;
+            shape.Position = holder.Body.Position + (shape.Rotation + (float)Math.PI/2f).GetVecFromAng() * -0.0f + shape.Rotation.GetVecFromAng() * .25f;//
         }
 
         public void SetOn()

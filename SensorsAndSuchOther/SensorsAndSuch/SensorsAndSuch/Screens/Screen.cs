@@ -57,11 +57,11 @@ namespace SensorsAndSuch.Screens
         public void Draw()
         {
             batch.Begin();
-            DrawScreen(batch, game.GraphicsDevice.PresentationParameters.DisplayOrientation);
+            Draw(batch, game.GraphicsDevice.PresentationParameters.DisplayOrientation);
             batch.End();
         }
 
-        protected virtual void DrawScreen(SpriteBatch batch, DisplayOrientation screenOrientation)
+        protected virtual void Draw(SpriteBatch batch, DisplayOrientation screenOrientation)
         {
         }
 

@@ -10,18 +10,19 @@ using SensorsAndSuch.Maps;
 using SensorsAndSuch.Mobs;
 using SensorsAndSuch.Texts;
 using SensorsAndSuch.Extensions;
+using SharpNeat.Utility;
 
 namespace SensorsAndSuch.Maps
 {
     public class RandomMap
     {        
         #region Properties
-        public static int RoomWidth = 6;
-        public static int RoomHeight = 4;
+        public static int RoomWidth = 20;
+        public static int RoomHeight = 17;
         internal static int TicksInCreate;
 
-        internal static int mapWidth = RoomWidth * 8;
-        internal static int mapHeight = RoomHeight * 8;
+        internal static int mapWidth = RoomWidth * 2;
+        internal static int mapHeight = RoomHeight * 2;
 
         internal static float mapWidthPhysics = RoomWidth * 8 * BaseTile.TileWidth;
         internal static float mapHeightPhysics = RoomHeight * 8 * BaseTile.TileHeight;
@@ -75,7 +76,7 @@ namespace SensorsAndSuch.Maps
                         {
                             for (int j = 0; j < RoomHeight; j++)
                             {
-                                if (!(i==RoomWidth-1 && j == RoomHeight -1) && !(i==0 && j==0))
+                                if (!(i==RoomWidth-1 && j == RoomHeight -1) && !(i==0 && j==0) && i%2 ==0)
                                     grid[x * RoomWidth + i, j + y * RoomHeight].Add(new Wall(new Vector2(x * RoomWidth + i, j + y * RoomHeight)));
 
                             }
@@ -213,6 +214,51 @@ namespace SensorsAndSuch.Maps
             if (i < 0 || i >= MapWidth) return false;
             if (j < 0 || j >= MapHeight) return false;
             return grid[i, j].Count == 1 || grid[i, j].Count == 0;
+        }
+
+        public float isPathFree(Vector2 gridPos1, Vector2 gridPos2)
+        { 
+            return isPathFree(gridPos: gridPos1, dir: gridPos2 - gridPos1, maxDist: (gridPos2 - gridPos1).Length());
+        }
+
+        public float isPathFree(Vector2 gridPos, Vector2 dir, float maxDist)
+        {
+            float dis = 0;
+            dir.X = dir.X != 0 ? dir.X : 0.001f;
+            dir.Y = dir.Y != 0 ? dir.Y : 0.001f;
+            float dirRatio = dir.X / dir.Y;
+
+            Vector2 traveled = new Vector2(0.0f, 0.0f);
+            if (Math.Abs(dir.X) > Math.Abs(dir.Y))
+            {
+                traveled.X += dir.X;
+            }
+            else
+            {
+                traveled.Y += dir.Y;
+            }
+
+            dir.X = dir.X / Math.Abs(dir.X);
+            dir.Y = dir.Y / Math.Abs(dir.Y);
+            while (traveled.LengthSquared() < maxDist * maxDist)
+            {
+                if (!Globals.map.isFree(gridPos + traveled))
+                {
+                    return traveled.Length() / maxDist;
+                }
+
+                if (Math.Abs(traveled.X / traveled.Y) > Math.Abs(dirRatio))
+                {
+                    traveled.X += dir.X;
+                }
+                else
+                {
+                    traveled.Y += dir.Y;
+
+                }
+            }
+            return 1f;
+
         }
 
         public bool isFree(Vector2 gridPos)
@@ -567,51 +613,53 @@ namespace SensorsAndSuch.Maps
                 pos = new Vector2(RandomMap.mapWidth/2, 0);
                 range = Globals.Debugging? RandomMap.mapWidth : 2;
             }
-           
-         List<BaseTile>[,] near = GetAdjColumsToArray((int)pos.X, (int)pos.Y, range);
+            if (range < 30){
+                List<BaseTile>[,] near = GetAdjColumsToArray((int)pos.X, (int)pos.Y, range);
 
-         for (int i = 0; i < range*2+1; i++)
-         {
-             for (int j = 0; j < range*2+1; j++)
-             {
-                 if (near[i, j] != null && near[i, j].Count != 0)
+                 for (int i = 0; i < range*2+1; i++)
                  {
-                     foreach (BaseTile tile in (near[i, j]))
+                     for (int j = 0; j < range*2+1; j++)
                      {
-                         float val = (int) Math.Sqrt((i - range) * (i - range) + (j - range) * (j - range));
-                         val /= range;
-                         val *= val;
-                         val *= val;
-                         val *= 256;
+                         if (near[i, j] != null && near[i, j].Count != 0)
+                         {
+                             foreach (BaseTile tile in (near[i, j]))
+                             {
+                                 float val = (int) Math.Sqrt((i - range) * (i - range) + (j - range) * (j - range));
+                                 val /= range;
+                                 val *= val;
+                                 val *= val;
+                                 val *= 256;
                                 
-                         tile.Seen(Math.Max(0, 255 - (int)val));
+                                 tile.Seen(Math.Max(0, 255 - (int)val));
              
-                         tile.Draw(batch);
+                                 tile.Draw(batch);
+                             }
+                         }
                      }
-                 }
-             }
-         }
-         
-            info.Draw(batch);
-            /*
-            for (int i = 0; i < MapWidth; i++)
+                }
+            }
+            else
             {
-                for (int j = 0; j < MapHeight; j++)
+                for (int i = 0; i < MapWidth; i++)
                 {
-
-                    if (grid[i, j].Count != 0)
+                    for (int j = 0; j < MapHeight; j++)
                     {
-                        foreach (BaseTile tile in grid[i, j])
+
+                        if (grid[i, j].Count != 0)
                         {
-                            tile.Draw(batch);
+                            foreach (BaseTile tile in grid[i, j])
+                            {
+
+                                tile.Seen(255);
+                                tile.Draw(batch);
+                            }
                         }
                     }
                 }
             }
+
             info.Draw(batch);
             if(Globals.Debugging) BaseElemental.DrawElementals(batch);
-        
-             */
         }
 
         #region Old Stuff
@@ -874,5 +922,29 @@ namespace SensorsAndSuch.Maps
         }
         */
         #endregion
+
+        internal static void CreateDefaultXMLFile(System.Xml.XmlWriter xWriter)
+        {
+            xWriter.WriteStartElement("Map");
+            xWriter.WriteStartElement("TicksInCreate");
+            xWriter.WriteAttributeString("amt", "500");
+            xWriter.WriteEndElement();
+            xWriter.WriteStartElement("NumOfElementals");
+            xWriter.WriteAttributeString("amt", "7");
+            xWriter.WriteEndElement();
+            xWriter.WriteEndElement();
+            xWriter.WriteEndDocument();
+        }
+
+        internal static void InitializeXMLData(System.Xml.XmlNodeReader xmlReader)
+        {
+            XmlIoUtils.MoveToElement(xmlReader, true, "Map");
+
+            XmlIoUtils.MoveToElement(xmlReader, true, "TicksInCreate");
+            RandomMap.TicksInCreate = XmlIoUtils.ReadAttributeAsInt(xmlReader, "amt");
+
+            XmlIoUtils.MoveToElement(xmlReader, true, "NumOfElementals");
+            BaseElemental.NumOfElementals = XmlIoUtils.ReadAttributeAsInt(xmlReader, "amt");
+        }
     }
 }

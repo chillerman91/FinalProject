@@ -29,11 +29,11 @@ namespace SensorsAndSuch.Screens
         {
             if (input.CheckMousePress(gameButton))
             {
-                changeScreenDelegate(ScreenState.Gameplay);
+                changeScreenDelegate(ScreenState.CreatingMap);
             }
         }
 
-        protected override void DrawScreen(SpriteBatch batch, DisplayOrientation displayOrientation)
+        protected override void Draw(SpriteBatch batch, DisplayOrientation displayOrientation)
         {
             batch.Draw(titleText, new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.White);
             gameButton.Draw(batch);

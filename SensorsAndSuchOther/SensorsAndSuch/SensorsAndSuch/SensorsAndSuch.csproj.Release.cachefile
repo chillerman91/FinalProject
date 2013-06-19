@@ -3,10 +3,17 @@ Content\Images\TitleText.xnb
 Content\Tiles\dirt.xnb
 Content\Tiles\Wall.xnb
 Content\Sensors\Wisker.xnb
+Content\Mobs\BadGuy.xnb
+Content\Tiles\rock.xnb
+Content\Tiles\tree.xnb
+Content\Items\sword.xnb
 Content\Fonts\buttonFont.xnb
 Content\Fonts\scoreFont.xnb
 Content\Fonts\screenFont.xnb
 Content\Fonts\debugFont.xnb
+SharpNeatDomainsExtra.experiments.xml
+SharpNeatDomains.experiments.xml
+log4net.properties
 Content\Materials\blank.xnb
 Content\Common\gradient.xnb
 Content\Common\logo.xnb

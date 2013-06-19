@@ -38,7 +38,7 @@ namespace SensorsAndSuch.Maps
             Grid[X, Y].Add(new Wall(X, Y));
             if (Grid[X, Y].Count != 2)
                 throw new Exception();
-            if (Globals.GamplayScreen.currentState == Screens.Gameplay.ScreenState.Ghost)
+            if (Globals.screen.currentState == Screens.PlayingScreen.WorldState.Ghost)
             {
                 foreach (BaseTile tile in (Grid[X, Y]))
                 {

@@ -12,6 +12,7 @@ namespace SensorsAndSuch.Screens
     {
         #region Datafields
         Vector2 BaseLocation = new Vector2(25, 635);
+
         private string playerValues;
         private string[] whiskerValues;
         private string adjascentValues;
@@ -33,7 +34,7 @@ namespace SensorsAndSuch.Screens
 
         public void Draw(SpriteBatch batch)
         {
-            batch.DrawString(player.font, "MobNumber: " + Globals.Mobs.GetMobAmount() + "\n", new Vector2(50, 10), Color.Black);
+            batch.DrawString(player.font, "MobNumber: " + Globals.Mobs.mobAmount + "\n", new Vector2(50, 10), Color.Black);
             if (!string.IsNullOrEmpty(GenInfo))
             {
                 //batch.DrawString(player.font, GenInfo, new Vector2(50, 80), Color.Black);

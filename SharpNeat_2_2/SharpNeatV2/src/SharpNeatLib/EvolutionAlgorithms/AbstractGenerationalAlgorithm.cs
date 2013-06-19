@@ -298,7 +298,7 @@ namespace SharpNeat.EvolutionAlgorithms
             return (DateTime.Now.Ticks - _prevUpdateTimeTick) >= _updateScheme.TimeSpan.Ticks;
         }
 
-        private void OnUpdateEvent()
+        protected void OnUpdateEvent()
         {
             if(null != UpdateEvent)
             {

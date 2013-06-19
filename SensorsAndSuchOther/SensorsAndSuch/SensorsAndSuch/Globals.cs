@@ -27,20 +27,20 @@ namespace SensorsAndSuch
         public static NeatExp NeatExp { get; set; }
         public static ScreenManager ScreenManager { get; set; }
         public static int tick = 0;
-        public static Gameplay GamplayScreen;
-        public static bool Debugging = true;
+        public static GameWorldScreenBase screen;
+        public static bool Debugging = false;
         public static GameTime GameTime;
-        public static void SetGeneral(ContentManager content, GraphicsDevice device, World World, Gameplay GamplayScreen)
+        public static void SetGeneral(ContentManager content, GraphicsDevice device, World World, GameWorldScreenBase GamplayScreen)
         {
             Globals.content = content;
             Globals.Device = device;
-            Globals.GamplayScreen = GamplayScreen;
+            Globals.screen = GamplayScreen;
             AssetCreatorr = new AssetCreator(device);
             Globals.World = World;
-            Globals.NeatExp = new NeatExp();
             XmlDocument xmlConfig = new XmlDocument();
-            xmlConfig.Load("tictactoe.config.xml");
-            Globals.NeatExp.Initialize("TicTacToe", xmlConfig.DocumentElement);
+            xmlConfig.Load("config/NEATEXP.config.xml");
+            NeatExp = new NeatExp();
+            Globals.NeatExp.Initialize("General NEATEXP", xmlConfig.DocumentElement);
         }
 
         public static void SetLevelSpecific(MobManager mobs, RandomMap map)

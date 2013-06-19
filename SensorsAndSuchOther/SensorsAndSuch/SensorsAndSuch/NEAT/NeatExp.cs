@@ -30,20 +30,14 @@ namespace SensorsAndSuch.NEAT
         /// The network has one input for each square on the board,
         /// so it has 9 inputs total.
         /// </summary>
-        public override int InputCount
-        {
-            get { return BadGuy.BrainInputs; }
-        }
+        public int InputCount = -1;
 
         /// <summary>
         /// Defines the number of output nodes in the neural network.
         /// The network has one output for each square on the board,
         /// so it has 9 outputs total.
         /// </summary>
-        public override int OutputCount
-        {
-            get { return 3; }
-        }
+        public int OutputCount = -1;
 
         /// <summary>
         /// Defines whether all networks should be evaluated every
@@ -64,7 +58,7 @@ namespace SensorsAndSuch.NEAT
         /// </summary>
         public BadGuyEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm()
         {
-            return CreateEvolutionAlgorithm(DefaultPopulationSize);
+            return CreateEvolutionAlgorithm(DefaultPopulationSize, InputCount, OutputCount);
         }
 
         /// <summary>
@@ -73,8 +67,10 @@ namespace SensorsAndSuch.NEAT
         /// This overload accepts a population size parameter that specifies how many genomes to create in an initial randomly
         /// generated population.
         /// </summary>
-        public BadGuyEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(int populationSize)
+        public BadGuyEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(int populationSize, int InputCount, int OutputCount)
         {
+            this._inputCount = InputCount;
+            this._outputCount = OutputCount;
             // Create a genome2 factory with our neat genome2 parameters object and the appropriate number of input and output neuron genes.
             IGenomeFactory<NeatGenome> genomeFactory = CreateGenomeFactory();
 

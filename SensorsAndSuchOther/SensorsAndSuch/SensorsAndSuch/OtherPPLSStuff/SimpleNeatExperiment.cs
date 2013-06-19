@@ -60,11 +60,11 @@ namespace SensorsAndSuch.NEAT
         string _description;
         protected ParallelOptions _parallelOptions;
         protected IGenomeDecoder<NeatGenome, IBlackBox> genomeDecoder;
+        public int _inputCount;
+        public int _outputCount;
 
         #region Abstract properties that subclasses must implement
         public abstract IPhenomeEvaluator<IBlackBox> PhenomeEvaluator { get; }
-        public abstract int InputCount { get; }
-        public abstract int OutputCount { get; }
         public abstract bool EvaluateParents { get; }
         #endregion
 
@@ -79,6 +79,21 @@ namespace SensorsAndSuch.NEAT
             get { return _name; }
         }
 
+        /// <summary>
+        /// Gets the default population size to use for the experiment.
+        /// </summary>
+        public int InputCount
+        {
+            get { return _inputCount; }
+        }
+
+        /// <summary>
+        /// Gets the default population size to use for the experiment.
+        /// </summary>
+        public int OutputCount
+        {
+            get { return _outputCount; }
+        }
         /// <summary>
         /// Gets the default population size to use for the experiment.
         /// </summary>
@@ -168,7 +183,17 @@ namespace SensorsAndSuch.NEAT
         public NeatEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm()
         
         {
-            return CreateEvolutionAlgorithm(DefaultPopulationSize);
+            return CreateEvolutionAlgorithm(DefaultPopulationSize, InputCount, OutputCount);
+        }
+
+        /// <summary>
+        /// Create and return a NeatEvolutionAlgorithm object ready for running the NEAT algorithm/search. Various sub-parts
+        /// of the algorithm are also constructed and connected up.
+        /// This overload requires no parameters and uses the default population size.
+        /// </summary>
+        public NeatEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(int popAmount)
+        {
+            return CreateEvolutionAlgorithm(popAmount, InputCount, OutputCount);
         }
 
         /// <summary>
@@ -177,8 +202,11 @@ namespace SensorsAndSuch.NEAT
         /// This overload accepts a population size parameter that specifies how many genomes to create in an initial randomly
         /// generated population.
         /// </summary>
-        public NeatEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(int populationSize)
+        public NeatEvolutionAlgorithm<NeatGenome> CreateEvolutionAlgorithm(int populationSize, int InputCount, int OutputCount)
         {
+            this._inputCount = InputCount;
+            this._outputCount = OutputCount;
+
             // Create a genome2 factory with our neat genome2 parameters object and the appropriate number of input and output neuron genes.
             IGenomeFactory<NeatGenome> genomeFactory = CreateGenomeFactory();
 

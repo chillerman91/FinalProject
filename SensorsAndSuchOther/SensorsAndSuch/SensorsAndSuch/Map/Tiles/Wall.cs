@@ -26,7 +26,8 @@ namespace SensorsAndSuch.Maps
             //texture = Globals.content.Load<Texture2D>(tex);
             this.GridPos = GridPos;
 
-            rectangle = BodyFactory.CreateRectangle(Globals.World, width: TileWidth, height: TileHeight, density: 5f);
+            rectangle = BodyFactory.CreateCircle(Globals.World, radius: TileWidth/2, density: 5f);
+                //BodyFactory.CreateRectangle(Globals.World, width: TileWidth, height: TileHeight, density: 5f);
             int image = Globals.rand.Next(10);
             string tex = "Tiles/tree";
             if(image < 3) tex = "Tiles/tree";
